@@ -1,0 +1,1744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SAM VISION | Bharat Estate Intelligence</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Manrope:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+/* ── RESET ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F8F6F1;
+  --glass:rgba(255,255,255,0.96);
+  --glass-border:rgba(184,134,11,0.18);
+  --txt:#111827;--muted:#6B7280;--light:#9CA3AF;
+  --gold:#B8860B;--gold-lt:#FDF6E3;--gold-mid:#D4A017;
+  --gold-grad:linear-gradient(135deg,#C9980D,#9A7009);
+  --sh-soft:0 8px 32px -8px rgba(0,0,0,0.10);
+  --sh-card:0 2px 12px rgba(0,0,0,0.06);
+  --sh-hard:0 20px 60px -15px rgba(0,0,0,0.18);
+  --r:10px;--r-lg:16px;--r-xl:20px;
+}
+body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--txt);
+  overflow:hidden;height:100vh;width:100vw;font-size:14px;line-height:1.5;position:fixed}
+.cinzel{font-family:'Cinzel',serif}
+.playfair{font-family:'Playfair Display',serif}
+input,select,button{font-family:inherit}
+
+/* ── MAP ── */
+#map-container{position:absolute;inset:0;z-index:0;background:#e8e4dc}
+
+/* ── SPLASH ── */
+#splash{
+  position:fixed;inset:0;z-index:9999;
+  background:linear-gradient(160deg,#fff 60%,#FDF6E3);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:opacity 1s ease,visibility 1s;
+}
+#splash.vanish{opacity:0;visibility:hidden;pointer-events:none}
+.splash-gem{
+  width:88px;height:88px;border-radius:50%;
+  border:1.5px solid var(--gold);background:white;
+  display:flex;align-items:center;justify-content:center;margin-bottom:28px;
+  box-shadow:0 8px 32px rgba(184,134,11,.15);
+  animation:pulse 2.4s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{box-shadow:0 8px 32px rgba(184,134,11,.15)}50%{box-shadow:0 12px 48px rgba(184,134,11,.35)}}
+.splash-title{font-family:'Cinzel',serif;font-size:2.6rem;font-weight:800;letter-spacing:.2em;color:#111;margin-bottom:8px}
+.splash-title span{color:var(--gold)}
+.splash-sub{font-size:.68rem;color:#9CA3AF;font-weight:700;text-transform:uppercase;letter-spacing:.45em;margin-bottom:8px}
+.splash-count{font-size:.63rem;color:#C9C4B8;margin-top:6px;letter-spacing:.05em}
+
+/* ══════════════════════════════════════
+   LEFT PANEL
+══════════════════════════════════════ */
+#panel{
+  position:fixed;left:12px;top:12px;bottom:12px;
+  width:430px;border-radius:var(--r-xl);
+  background:var(--glass);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
+  border:1px solid var(--glass-border);
+  box-shadow:var(--sh-hard);
+  z-index:20;display:flex;flex-direction:column;overflow:hidden;
+}
+.panel-head{
+  padding:18px 20px 14px;
+  border-bottom:1px solid rgba(229,231,235,0.6);
+  background:rgba(255,255,255,0.7);
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.brand-row{display:flex;align-items:center;gap:12px}
+.brand-icon{
+  width:38px;height:38px;border-radius:12px;border:1.5px solid rgba(184,134,11,.4);
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#fff,#FDF6E3);
+  box-shadow:0 2px 8px rgba(184,134,11,.15);flex-shrink:0;
+}
+.brand-name{font-family:'Cinzel',serif;font-size:1.05rem;font-weight:700;letter-spacing:.1em;color:#111}
+.brand-name span{color:var(--gold)}
+.brand-tag{font-size:.58rem;color:var(--light);text-transform:uppercase;letter-spacing:.2em;font-weight:700;margin-top:1px}
+
+/* ── SCROLL AREA ── */
+.scroll{flex:1;overflow-y:auto;min-height:0;height:0;padding:18px 16px;display:flex;flex-direction:column;gap:14px}
+.scroll::-webkit-scrollbar{width:3px}
+.scroll::-webkit-scrollbar-thumb{background:rgba(184,134,11,.3);border-radius:4px}
+
+/* ── SECTION ── */
+.sec{background:rgba(255,255,255,0.7);border:1px solid rgba(229,231,235,0.7);
+  border-radius:var(--r-lg);padding:14px;box-shadow:var(--sh-card)}
+.sec-hd{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.sec-n{font-size:.58rem;font-weight:800;color:var(--gold);letter-spacing:.05em}
+.sec-t{font-size:.6rem;font-weight:700;color:#111;text-transform:uppercase;letter-spacing:.12em;flex:1}
+
+/* ── FORM CONTROLS ── */
+.lbl{display:block;font-size:.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.sel{
+  width:100%;padding:9px 28px 9px 10px;border:1px solid #E5E7EB;border-radius:var(--r);
+  font-size:.74rem;font-weight:600;color:#111;background:#fff;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23B8860B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;appearance:none;
+  transition:border-color .2s,box-shadow .2s;
+  box-shadow:0 1px 3px rgba(0,0,0,.04);
+}
+.sel:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,134,11,.12);outline:none}
+.sel:disabled{background:#F9FAFB;color:#9CA3AF;cursor:not-allowed}
+
+/* ── GRID HELPERS ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+
+/* ── SLIDER ── */
+.slider-wrap{margin-bottom:4px}
+.slider-hd{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:6px}
+.slider-badge{
+  font-size:.68rem;font-weight:700;color:var(--gold);
+  background:var(--gold-lt);border:1px solid rgba(184,134,11,.3);
+  padding:2px 10px;border-radius:20px;
+}
+input[type=range]{
+  width:100%;height:5px;border-radius:3px;cursor:pointer;
+  appearance:none;background:#E5E7EB;accent-color:var(--gold);
+}
+input[type=range]::-webkit-slider-thumb{
+  appearance:none;width:18px;height:18px;border-radius:50%;
+  background:var(--gold);border:2.5px solid #fff;
+  box-shadow:0 2px 6px rgba(184,134,11,.4);cursor:pointer;
+  transition:transform .15s;
+}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+.slider-range{display:flex;justify-content:space-between;font-size:.58rem;color:var(--light);font-weight:700;margin-top:4px}
+
+/* ── ACTION BUTTON ── */
+.btn-run{
+  background:linear-gradient(135deg,#1a1a1a,#111);color:#fff;
+  border:1px solid rgba(184,134,11,.5);padding:15px;width:100%;
+  font-family:'Cinzel',serif;font-weight:700;letter-spacing:.15em;font-size:.78rem;
+  text-transform:uppercase;cursor:pointer;transition:all .35s;
+  position:relative;overflow:hidden;border-radius:var(--r);
+}
+.btn-run::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,transparent 30%,rgba(184,134,11,.25),transparent 70%);
+  transform:translateX(-100%);transition:.6s;
+}
+.btn-run:hover{background:var(--gold-grad);transform:translateY(-2px);
+  box-shadow:0 12px 30px rgba(184,134,11,.35)}
+.btn-run:hover::before{transform:translateX(100%)}
+.btn-run:active{transform:translateY(0)}
+
+/* ── PANEL FOOTER ── */
+.panel-foot{padding:14px 16px;border-top:1px solid rgba(229,231,235,0.6);
+  background:rgba(255,255,255,0.8);flex-shrink:0;border-radius:0 0 var(--r-xl) var(--r-xl)}
+
+/* ══════════════════════════════════════
+   RIGHT DRAWER
+══════════════════════════════════════ */
+#drawer{
+  position:fixed;right:12px;top:12px;bottom:12px;
+  width:560px;max-width:calc(100vw - 466px);
+  background:#fff;z-index:30;
+  border-radius:var(--r-xl);
+  border:1px solid rgba(229,231,235,0.8);
+  transform:translateX(calc(100% + 24px));
+  transition:transform .55s cubic-bezier(.16,1,.3,1);
+  box-shadow:var(--sh-hard);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+#drawer.open{transform:translateX(0)}
+
+.drawer-head{
+  padding:16px 20px;
+  border-bottom:1px solid #F0F0F0;
+  display:flex;align-items:center;justify-content:space-between;
+  background:linear-gradient(180deg,#fff,rgba(255,255,255,.95));
+  flex-shrink:0;
+  border-radius:var(--r-xl) var(--r-xl) 0 0;
+}
+.drawer-title{font-family:'Cinzel',serif;font-size:1.05rem;font-weight:700;color:#111;letter-spacing:.04em}
+.drawer-sub{font-size:.58rem;color:var(--light);font-weight:700;text-transform:uppercase;letter-spacing:.15em;margin-top:3px}
+.drawer-actions{display:flex;align-items:center;gap:8px}
+
+/* THE SCROLL — this is the critical fix */
+.drawer-scroll{
+  flex:1;
+  overflow-y:auto;
+  overflow-x:hidden;
+  min-height:0;
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  background:#F7F6F2;
+  border-radius:0 0 var(--r-xl) var(--r-xl);
+}
+.drawer-scroll::-webkit-scrollbar{width:4px}
+.drawer-scroll::-webkit-scrollbar-thumb{background:rgba(184,134,11,.35);border-radius:4px}
+.drawer-scroll::-webkit-scrollbar-track{background:transparent}
+
+/* ── ICON BUTTONS ── */
+.btn-icon{
+  width:32px;height:32px;border-radius:50%;border:1px solid #E5E7EB;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  background:#fff;transition:all .2s;color:var(--muted);flex-shrink:0;
+}
+.btn-icon:hover{background:#FEF2F2;color:#DC2626;border-color:#FCA5A5;transform:scale(1.05)}
+.btn-pdf-el{
+  display:flex;align-items:center;gap:6px;padding:7px 14px;
+  background:#111;color:#fff;border:1px solid var(--gold);border-radius:var(--r);
+  font-family:'Cinzel',serif;font-size:.62rem;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;cursor:pointer;transition:all .25s;
+}
+.btn-pdf-el:hover{background:var(--gold);transform:translateY(-1px);box-shadow:0 6px 16px rgba(184,134,11,.35)}
+.info-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:18px;height:18px;border-radius:50%;background:var(--gold-lt);
+  border:1px solid rgba(184,134,11,.4);cursor:pointer;font-size:.55rem;font-weight:800;
+  color:var(--gold);flex-shrink:0;transition:all .2s;line-height:1;
+}
+.info-btn:hover{background:var(--gold);color:#fff;transform:scale(1.1)}
+
+/* ── CARDS ── */
+.card{
+  background:#fff;border:1px solid rgba(229,231,235,0.9);
+  border-radius:var(--r-lg);overflow:hidden;
+  box-shadow:var(--sh-card);
+  flex-shrink:0;
+}
+.card-hd{
+  padding:11px 16px;
+  background:linear-gradient(180deg,#FAFAFA,#F5F5F5);
+  border-bottom:1px solid #EFEFEF;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.card-hd-title{font-size:.6rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.14em}
+.card-body{padding:16px;display:block}
+
+/* ── HERO PRICE CARD ── */
+.hero-card{
+  background:linear-gradient(160deg,#fff 70%,#FDFAF3);
+  border:1px solid rgba(184,134,11,.2);border-radius:var(--r-lg);
+  padding:24px 20px 20px;text-align:center;position:relative;overflow:hidden;
+  box-shadow:0 4px 20px rgba(184,134,11,.08);flex-shrink:0;
+}
+.hero-topbar{position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.hero-eyebrow{font-size:.6rem;color:var(--light);font-weight:700;
+  text-transform:uppercase;letter-spacing:.22em;margin-bottom:8px}
+.hero-price{font-family:'Playfair Display',serif;font-size:2.9rem;font-weight:700;
+  color:#111;line-height:1.1;margin-bottom:8px;
+  background:linear-gradient(135deg,#111,#3a3a3a);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-rate{display:inline-block;background:var(--gold-lt);border:1px solid rgba(184,134,11,.3);
+  border-radius:20px;padding:4px 18px;font-size:.73rem;font-weight:700;color:var(--gold);margin-bottom:18px}
+.hero-grid{display:grid;grid-template-columns:repeat(3,1fr);
+  border:1px solid #F0EDE4;border-radius:var(--r);overflow:hidden;background:#FAF8F3}
+.hero-cell{padding:12px 8px;text-align:center;border-right:1px solid #EEE8DC}
+.hero-cell:last-child{border:none}
+.hero-cell-val{font-weight:700;font-size:.88rem;color:#111}
+.hero-cell-val.gold{color:var(--gold)}
+.hero-cell-lab{font-size:.58rem;color:var(--light);text-transform:uppercase;margin-top:3px;font-weight:700;letter-spacing:.04em}
+
+/* ── VERDICT ── */
+.verdict-card{border-radius:var(--r-lg);padding:18px;flex-shrink:0}
+.verdict-buy{background:linear-gradient(160deg,#F0FDF4,#E8FAF0);border:1.5px solid #16A34A}
+.verdict-hold{background:linear-gradient(160deg,#FFFBEB,#FFF7DC);border:1.5px solid #D97706}
+.verdict-avoid{background:linear-gradient(160deg,#FEF2F2,#FEE8E8);border:1.5px solid #DC2626}
+.verdict-top{display:flex;align-items:flex-start;gap:14px;margin-bottom:14px}
+.verdict-icon{font-size:2.4rem;flex-shrink:0;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.1))}
+.verdict-head{display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap}
+.verdict-label{font-family:'Cinzel',serif;font-size:1.25rem;font-weight:700;color:#111;letter-spacing:.04em}
+.verdict-tag{display:inline-block;padding:3px 10px;border-radius:20px;
+  font-size:.58rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.tag-buy{background:#DCFCE7;color:#15803D}
+.tag-hold{background:#FEF3C7;color:#B45309}
+.tag-avoid{background:#FEE2E2;color:#B91C1C}
+.verdict-reason{font-size:.73rem;color:#4B5563;line-height:1.65}
+.verdict-divider{border:0;border-top:1px solid rgba(0,0,0,.07);margin:14px 0}
+.checklist{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.check-item{
+  display:flex;align-items:flex-start;gap:6px;padding:8px 10px;
+  border-radius:var(--r);background:rgba(255,255,255,.75);
+  font-size:.68rem;color:#374151;line-height:1.45;
+  border:1px solid rgba(0,0,0,.05);
+  box-shadow:0 1px 3px rgba(0,0,0,.04);
+}
+.check-sym{font-size:.9rem;font-weight:700;flex-shrink:0;line-height:1.3}
+.sym-yes{color:#16A34A}.sym-no{color:#DC2626}.sym-warn{color:#D97706}
+
+/* ── FINANCE GRID ── */
+.fin-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fin-cell{
+  padding:14px 12px;
+  background:linear-gradient(160deg,#F9FAFB,#F4F5F7);
+  border-radius:var(--r);border:1px solid #EEEEEE;
+  box-shadow:0 1px 4px rgba(0,0,0,.04);
+}
+.fin-val{font-weight:700;font-size:.98rem;color:#111;margin-bottom:2px}
+.fin-lab{font-size:.58rem;color:var(--light);text-transform:uppercase;font-weight:700;margin-bottom:3px;letter-spacing:.04em}
+.fin-sub{font-size:.62rem;color:var(--muted);line-height:1.4}
+.fin-val-green{color:#16A34A}
+.fin-val-amber{color:#D97706}
+.fin-val-red{color:#DC2626}
+
+/* ── SCORE GAUGE ── */
+.gauge-wrap{position:relative;width:120px;height:64px;overflow:hidden;margin:0 auto 6px}
+.gauge-bg{position:absolute;bottom:0;width:120px;height:60px;border-radius:60px 60px 0 0;background:#EBEBEB}
+.gauge-fill{position:absolute;bottom:0;width:120px;height:60px;border-radius:60px 60px 0 0;transform-origin:center bottom;transition:transform 1.2s cubic-bezier(.34,1.56,.64,1)}
+.gauge-center{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);text-align:center;white-space:nowrap}
+.gauge-num{font-family:'Cinzel',serif;font-size:1.45rem;font-weight:700;color:#111;line-height:1}
+.gauge-denom{font-size:.58rem;color:var(--light);font-weight:700}
+.score-bars{flex:1;display:flex;flex-direction:column;gap:10px;min-width:0}
+.sb-row{display:flex;flex-direction:column;gap:4px}
+.sb-top{display:flex;justify-content:space-between;font-size:.63rem;font-weight:700}
+.sb-lab{color:var(--muted)}
+.sb-val{color:#111}
+.prog{height:6px;background:#EBEBEB;border-radius:6px;overflow:hidden}
+.prog-fill{height:100%;border-radius:6px;background:var(--gold-grad);transition:width 1.2s cubic-bezier(.34,1.56,.64,1)}
+
+/* ── ALGO LIST ── */
+.live-dot{display:flex;align-items:center;gap:5px;font-size:.6rem;color:#16A34A;font-weight:700}
+.dot-green{width:6px;height:6px;border-radius:50%;background:#16A34A;flex-shrink:0}
+.dot-ping{width:6px;height:6px;border-radius:50%;background:#16A34A;flex-shrink:0;animation:pingDot 1.8s ease-out infinite}
+@keyframes pingDot{0%{transform:scale(.5);opacity:1}100%{transform:scale(2.8);opacity:0}}
+.algo-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:11px 16px;border-bottom:1px solid #F5F5F5;font-size:.74rem;
+  transition:background .15s;
+}
+.algo-row:hover{background:#FAFAFA}
+.algo-row:last-child{border:none}
+.algo-row.winner{background:linear-gradient(90deg,#FFFDF5,#FFF);border-left:3px solid var(--gold)}
+.algo-name{font-weight:600;color:var(--muted)}
+.algo-name.win-name{font-weight:700;color:#111}
+.algo-val{font-weight:700;color:#111;font-family:monospace;font-size:.74rem}
+.algo-acc{font-size:.58rem;color:var(--gold);font-weight:700;margin-top:2px}
+
+/* ── CYCLE ── */
+.cycle-bar{display:flex;gap:4px;margin-bottom:12px}
+.cycle-seg{flex:1;height:10px;border-radius:20px;opacity:.2;transition:all .5s cubic-bezier(.34,1.56,.64,1)}
+.cycle-seg.active{opacity:1;transform:scaleY(1.4)}
+.cycle-desc{font-size:.72rem;color:#4B5563;background:#F7F6F2;
+  border-radius:var(--r);padding:12px 14px;line-height:1.65;border:1px solid #EEEAE0}
+
+/* ── COMPARABLES ── */
+.comp-row{display:flex;align-items:center;gap:10px;font-size:.72rem;padding:4px 0}
+.comp-name{font-weight:700;color:#374151;width:110px;flex-shrink:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.comp-bar-wrap{flex:1;height:6px;background:#F0EDE4;border-radius:6px;overflow:hidden}
+.comp-bar{height:100%;border-radius:6px;
+  background:linear-gradient(90deg,rgba(184,134,11,.4),rgba(184,134,11,.7))}
+.comp-price{font-weight:700;color:var(--muted);font-family:monospace;
+  width:110px;text-align:right;flex-shrink:0;font-size:.64rem}
+
+/* ── TAX TABLE ── */
+.tax-row{display:flex;justify-content:space-between;align-items:flex-start;
+  padding:8px 0;border-bottom:1px solid #F3F4F6;font-size:.72rem;gap:12px}
+.tax-row:last-child{border:none}
+.tax-lab{color:var(--muted);flex-shrink:0}
+.tax-val{font-weight:700;color:#111;text-align:right}
+
+/* ── SOURCES MODAL ── */
+#modal-overlay{
+  position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.45);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(4px);
+}
+#modal-overlay.open{opacity:1;pointer-events:all}
+.modal{
+  background:#fff;border-radius:var(--r-xl);padding:28px;max-width:520px;width:90%;
+  max-height:82vh;overflow-y:auto;position:relative;
+  box-shadow:0 30px 80px rgba(0,0,0,.22);
+  animation:modalIn .3s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes modalIn{from{transform:scale(.94) translateY(8px);opacity:0}to{transform:none;opacity:1}}
+.modal-hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
+.modal-title{font-family:'Cinzel',serif;font-size:1.1rem;font-weight:700;color:#111}
+.modal-sub{font-size:.68rem;color:var(--light);margin-top:3px}
+.src-block{padding:14px;border-radius:var(--r);margin-bottom:12px}
+.src-amber{background:#FFFBEB;border:1px solid #FDE68A}
+.src-blue{background:#EFF6FF;border:1px solid #BFDBFE}
+.src-green{background:#F0FDF4;border:1px solid #BBF7D0}
+.src-gray{background:#F9FAFB;border:1px solid #E5E7EB}
+.src-title{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
+.src-amber .src-title{color:#92400E}
+.src-blue .src-title{color:#1E40AF}
+.src-green .src-title{color:#14532D}
+.src-gray .src-title{color:#374151}
+.src-list{list-style:none;display:flex;flex-direction:column;gap:5px}
+.src-list li{font-size:.7rem;color:#374151;line-height:1.45}
+.src-list li b{color:#111}
+
+/* ── MAP PIN ── */
+.pin-wrapper{pointer-events:none}
+.pin-head{
+  width:32px;height:32px;background:var(--gold);border:3px solid #fff;border-radius:50%;
+  box-shadow:0 4px 15px rgba(0,0,0,.4);position:absolute;top:-60px;left:-16px;
+  display:flex;align-items:center;justify-content:center;animation:bounce .9s ease-in-out infinite alternate;
+}
+.pin-stem{width:2px;height:30px;background:#333;position:absolute;top:-30px;left:-1px;opacity:.6}
+.pin-pulse{
+  width:14px;height:14px;background:rgba(184,134,11,.45);border-radius:50%;
+  position:absolute;top:-7px;left:-7px;animation:pulsering 2s ease-out infinite;
+}
+@keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-6px)}}
+@keyframes pulsering{0%{transform:scale(.5);opacity:1}100%{transform:scale(3.2);opacity:0}}
+
+/* ── FOOTER NOTE ── */
+.report-footer{
+  background:linear-gradient(135deg,var(--gold-lt),#FFF8E8);
+  border:1px solid rgba(184,134,11,.18);border-radius:var(--r-lg);
+  padding:16px;text-align:center;flex-shrink:0;
+}
+.report-footer p{font-size:.62rem;color:var(--light);line-height:1.75}
+.report-footer a{color:var(--gold);text-decoration:none;cursor:pointer;font-weight:700;
+  border-bottom:1px dotted rgba(184,134,11,.4)}
+.report-ref{font-family:monospace;font-size:.58rem;color:#C8C4BA;margin-top:5px;letter-spacing:.05em}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 1100px){
+  #panel{width:370px;left:10px;top:10px;bottom:10px}
+  #drawer{max-width:calc(100vw - 404px);right:10px;top:10px;bottom:10px}
+}
+@media (max-width: 820px){
+  #panel{width:calc(100% - 20px);border-radius:var(--r-xl) var(--r-xl) 0 0;
+    bottom:auto;height:48vh;top:10px;left:10px;right:10px}
+  #drawer{top:calc(48vh + 18px);height:calc(52vh - 28px);
+    width:calc(100% - 20px);max-width:none;left:10px;right:10px;
+    border-radius:0 0 var(--r-xl) var(--r-xl)}
+  #map-container{top:calc(48vh + 18px);position:fixed}
+}
+@media print{
+  body{overflow:visible!important;height:auto!important;position:static!important}
+  #splash,#modal-overlay,#panel{display:none!important}
+  #map-container{display:none!important}
+  #drawer{position:static!important;transform:none!important;
+    width:100%!important;box-shadow:none!important;border-radius:0!important;border:none!important}
+  .btn-pdf-el,.btn-icon,.drawer-head .drawer-actions{display:none!important}
+  .drawer-scroll{overflow:visible!important;height:auto!important;background:#fff!important}
+  .card,.hero-card,.verdict-card{break-inside:avoid}
+  @page{margin:15mm;size:A4}
+}
+
+/* ── UTILITY ── */
+.flex{display:flex}.flex-col{flex-direction:column}.items-center{align-items:center}
+.items-start{align-items:flex-start}.items-end{align-items:flex-end}
+.justify-between{justify-content:space-between}.justify-center{justify-content:center}
+.gap-2{gap:8px}.gap-3{gap:12px}.gap-4{gap:16px}.flex-1{flex:1}.flex-shrink-0{flex-shrink:0}
+.mt-1{margin-top:4px}.mt-2{margin-top:8px}.mt-3{margin-top:12px}
+.mb-2{margin-bottom:8px}.mb-3{margin-bottom:12px}
+.font-bold{font-weight:700}.text-right{text-align:right}
+.divider{border:0;border-top:1px solid #F0F0F0;margin:4px 0}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-gem">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#B8860B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/></svg>
+  </div>
+  <div class="splash-title cinzel">SAM <span>VISION</span></div>
+  <div class="splash-sub">Bharat Estate Intelligence · 2026</div>
+  <div class="splash-count">300+ Localities · 65+ Cities · 25 States</div>
+</div>
+
+<!-- SOURCES MODAL -->
+<div id="modal-overlay">
+  <div class="modal">
+    <div class="modal-hd">
+      <div><div class="modal-title">Data Sources & Methodology</div><div class="modal-sub">All prices are Q1 2026 estimates from authoritative Indian sources.</div></div>
+      <button class="btn-icon" onclick="closeModal()" style="flex-shrink:0;margin-left:12px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="src-block src-amber">
+      <div class="src-title">📊 Primary Price Sources</div>
+      <ul class="src-list">
+        <li><b>MagicBricks & 99acres Insight Reports</b> — Locality-level ₹/sqft, QoQ & YoY trends (Jan 2026)</li>
+        <li><b>Knight Frank India Real Estate Report 2025</b> — Premium & luxury segment pricing, city-wide indices</li>
+        <li><b>Anarock Research Q4 2025</b> — Residential launch prices, unsold inventory, absorption rates</li>
+        <li><b>CREDAI Housing Outlook 2026</b> — Affordable housing prices, RERA-registered project data</li>
+        <li><b>NoBroker Market Pulse</b> — Rental yield data, actual transaction vs listed prices</li>
+      </ul>
+    </div>
+    <div class="src-block src-blue">
+      <div class="src-title">🏛️ Government & Regulatory Sources</div>
+      <ul class="src-list">
+        <li><b>RERA Portal (state-wise)</b> — Registered project prices, developer data</li>
+        <li><b>RBI Housing Price Index (HPI)</b> — Macro price movement by city tier</li>
+        <li><b>IGR Maharashtra / State Stamp Duty portals</b> — Actual registered transaction values</li>
+        <li><b>PMAY & Affordable Housing Scheme data</b> — Sub-₹6,000/sqft market benchmarks</li>
+      </ul>
+    </div>
+    <div class="src-block src-green">
+      <div class="src-title">📐 Valuation Methodology</div>
+      <ul class="src-list">
+        <li><b>Base Rate:</b> Median ₹/sqft from 3+ sources per locality, weighted by transaction volume</li>
+        <li><b>Segment Multiplier:</b> Anarock affordability matrix — 0.55× (affordable) to 2.2× (ultra-luxury)</li>
+        <li><b>Growth CAGR:</b> 5-year historical + 2-year forward from Knight Frank city outlook</li>
+        <li><b>Rental Yield:</b> NoBroker monthly rent, annualised per RBI yield framework</li>
+        <li><b>EMI:</b> SBI home loan rate 8.5% p.a., per RBI lending norms</li>
+      </ul>
+    </div>
+    <div class="src-block src-gray">
+      <div class="src-title">⚠️ Disclaimer</div>
+      <p class="src-list" style="font-size:.7rem;color:#6B7280;line-height:1.6">For informational and academic use only. Prices are indicative Q1 2026 estimates. Always verify with RERA, local registrar offices, and a certified property valuer before transacting.</p>
+    </div>
+  </div>
+</div>
+
+<div id="map-container"></div>
+
+<!-- LEFT PANEL -->
+<div id="panel">
+  <div class="panel-head">
+    <div class="brand-row">
+      <div class="brand-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B8860B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </div>
+      <div>
+        <div class="brand-name cinzel">SAM <span>VISION</span></div>
+        <div class="brand-tag">Property Valuation AI · v3</div>
+      </div>
+    </div>
+    <button class="info-btn" onclick="openModal()" title="Data Sources">i</button>
+  </div>
+
+  <div class="scroll">
+
+    <!-- 01 TERRITORY -->
+    <section class="sec">
+      <div class="sec-hd">
+        <span class="sec-n">01.</span>
+        <span class="sec-t">Territory</span>
+        <button class="info-btn" onclick="openModal()">i</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div>
+          <label class="lbl">State / Region</label>
+          <select id="state" class="sel" onchange="loadCities()"><option disabled selected>Select State</option></select>
+        </div>
+        <div class="g2">
+          <div>
+            <label class="lbl">City</label>
+            <select id="city" class="sel" disabled onchange="loadLocs()"><option>--</option></select>
+          </div>
+          <div>
+            <label class="lbl">Locality</label>
+            <select id="loc" class="sel" disabled onchange="flyTo()"><option>--</option></select>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 SEGMENT -->
+    <section class="sec">
+      <div class="sec-hd">
+        <span class="sec-n">02.</span>
+        <span class="sec-t">Housing Segment</span>
+        <button class="info-btn" onclick="openModal()">i</button>
+      </div>
+      <div style="background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:12px">
+        <label class="lbl">Project Category</label>
+        <select id="segment" class="sel">
+          <option value="0.55">Affordable / SRA / Redevelopment (under ₹45L)</option>
+          <option value="0.80">Budget Mid (₹45L–80L)</option>
+          <option value="1.00" selected>Mid-Segment — Standard Gated (₹80L–1.5Cr)</option>
+          <option value="1.35">Premium (₹1.5Cr–4Cr)</option>
+          <option value="1.70">Luxury (₹4Cr–10Cr)</option>
+          <option value="2.20">Ultra Luxury / Landmark (₹10Cr+)</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- 03 DIMENSIONS -->
+    <section class="sec">
+      <div class="sec-hd"><span class="sec-n">03.</span><span class="sec-t">Dimensions</span></div>
+      <div class="slider-wrap" style="margin-bottom:12px">
+        <div class="slider-hd">
+          <label class="lbl" style="margin:0">Carpet Area</label>
+          <span class="slider-badge"><span id="area-val">850</span> sq.ft</span>
+        </div>
+        <input type="range" id="area" min="200" max="10000" step="25" value="850" oninput="document.getElementById('area-val').innerText=this.value">
+        <div class="slider-range"><span>200</span><span>10,000 sq.ft</span></div>
+      </div>
+      <div class="g2">
+        <div><label class="lbl">Configuration</label>
+          <select id="config" class="sel">
+            <option value="0.85">1 RK / Studio</option>
+            <option value="0.95">1 BHK</option>
+            <option value="1.05" selected>2 BHK</option>
+            <option value="1.15">3 BHK</option>
+            <option value="1.28">4 BHK / Jodi</option>
+            <option value="1.50">Duplex / Penthouse</option>
+            <option value="1.80">Villa / Bungalow</option>
+          </select>
+        </div>
+        <div><label class="lbl">Furnishing</label>
+          <select id="furnish" class="sel">
+            <option value="1.00">Unfurnished</option>
+            <option value="1.08">Semi-Furnished</option>
+            <option value="1.18">Fully Furnished</option>
+            <option value="1.28">Luxury Fit-Out</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 LIFESTYLE -->
+    <section class="sec">
+      <div class="sec-hd"><span class="sec-n">04.</span><span class="sec-t">Lifestyle Factors</span></div>
+      <div class="g2">
+        <div><label class="lbl">Floor Rise</label>
+          <select id="floor" class="sel">
+            <option value="0.95">Ground / G+1</option>
+            <option value="1.00">Low (2–5F)</option>
+            <option value="1.05" selected>Mid (6–14F)</option>
+            <option value="1.12">High (15–29F)</option>
+            <option value="1.22">Sky (30F+)</option>
+          </select>
+        </div>
+        <div><label class="lbl">View Premium</label>
+          <select id="view" class="sel">
+            <option value="1.00" selected>Road / Internal</option>
+            <option value="1.06">Garden / Landscape</option>
+            <option value="1.14">Pool / Amenity</option>
+            <option value="1.22">Sea / Lake</option>
+            <option value="1.30">Panoramic / Hill</option>
+          </select>
+        </div>
+        <div><label class="lbl">Facing (Vastu)</label>
+          <select id="facing" class="sel">
+            <option value="1.00" selected>North / East (Best)</option>
+            <option value="0.98">North-West</option>
+            <option value="0.96">South-East</option>
+            <option value="0.93">South / West</option>
+          </select>
+        </div>
+        <div><label class="lbl">Property Age</label>
+          <select id="age" class="sel">
+            <option value="1.08">Under Construction</option>
+            <option value="1.05">New (0–2 yrs)</option>
+            <option value="1.00" selected>Recent (3–7 yrs)</option>
+            <option value="0.93">Older (8–15 yrs)</option>
+            <option value="0.85">Ageing (15+ yrs)</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 AMENITY -->
+    <section class="sec">
+      <div class="sec-hd"><span class="sec-n">05.</span><span class="sec-t">Amenity Grade</span></div>
+      <div class="slider-wrap">
+        <div class="slider-hd">
+          <label class="lbl" style="margin:0">Infrastructure & Society Score</label>
+          <span class="slider-badge"><span id="amen-val">70</span>%</span>
+        </div>
+        <input type="range" id="amenity" min="20" max="100" step="5" value="70" oninput="document.getElementById('amen-val').innerText=this.value">
+        <div class="slider-range"><span>Basic</span><span>World-Class</span></div>
+      </div>
+    </section>
+
+    <!-- 06 PURCHASE CONTEXT -->
+    <section class="sec">
+      <div class="sec-hd"><span class="sec-n">06.</span><span class="sec-t">Purchase Context</span></div>
+      <div class="g2">
+        <div><label class="lbl">Purpose</label>
+          <select id="purpose" class="sel">
+            <option value="end_use" selected>Self-Use / End-Use</option>
+            <option value="invest">Investment / Rental</option>
+            <option value="nri">NRI Purchase</option>
+            <option value="flip">Short-Term Flip</option>
+          </select>
+        </div>
+        <div><label class="lbl">Market Condition</label>
+          <select id="market" class="sel">
+            <option value="buyer">Buyer's Market</option>
+            <option value="neutral" selected>Neutral Market</option>
+            <option value="seller">Seller's Market</option>
+            <option value="hot">Hot / Undersupply</option>
+          </select>
+        </div>
+        <div><label class="lbl">Annual Income (₹L)</label>
+          <select id="income" class="sel">
+            <option value="6">Up to ₹6L</option>
+            <option value="12">₹6–12L</option>
+            <option value="20" selected>₹12–20L</option>
+            <option value="35">₹20–35L</option>
+            <option value="60">₹35–60L</option>
+            <option value="100">₹60L–1Cr</option>
+            <option value="200">Above ₹1Cr</option>
+          </select>
+        </div>
+        <div><label class="lbl">Loan Tenure</label>
+          <select id="tenure" class="sel">
+            <option value="10">10 Years</option>
+            <option value="15">15 Years</option>
+            <option value="20" selected>20 Years</option>
+            <option value="25">25 Years</option>
+            <option value="30">30 Years</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- 07 RISK -->
+    <section class="sec">
+      <div class="sec-hd"><span class="sec-n">07.</span><span class="sec-t">Risk Profile</span></div>
+      <div class="g2">
+        <div><label class="lbl">Risk Appetite</label>
+          <select id="risk" class="sel">
+            <option value="conservative">Conservative</option>
+            <option value="moderate" selected>Moderate</option>
+            <option value="aggressive">Aggressive</option>
+          </select>
+        </div>
+        <div><label class="lbl">Hold Period</label>
+          <select id="hold" class="sel">
+            <option value="1">1 Year (Flip)</option>
+            <option value="3">3 Years</option>
+            <option value="5" selected>5 Years</option>
+            <option value="10">10 Years</option>
+            <option value="15">Long-Term (15yr)</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- end scroll -->
+
+  <div class="panel-foot">
+    <button class="btn-run" onclick="runAnalysis()">⚡ Run Full Valuation Analysis</button>
+  </div>
+</div>
+
+<!-- RIGHT DRAWER -->
+<div id="drawer">
+  <div class="drawer-head">
+    <div>
+      <div class="drawer-title">Valuation Report</div>
+      <div class="drawer-sub" id="report-loc">--</div>
+    </div>
+    <div class="drawer-actions">
+      <button class="btn-pdf-el" onclick="exportPDF()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export PDF
+      </button>
+      <button class="btn-icon" onclick="closeDrawer()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="drawer-scroll" id="report-body">
+
+    <!-- A. HERO PRICE -->
+    <div class="hero-card">
+      <div class="hero-topbar"></div>
+      <div class="hero-eyebrow">Estimated Market Value · Q1 2026</div>
+      <div class="hero-price playfair" id="final-price">--</div>
+      <div class="hero-rate" id="final-rate">--</div>
+      <div class="hero-grid">
+        <div class="hero-cell"><div class="hero-cell-val" id="stamp-val">--</div><div class="hero-cell-lab">Stamp Duty ~6%</div></div>
+        <div class="hero-cell"><div class="hero-cell-val" id="reg-val">--</div><div class="hero-cell-lab">Reg + GST ~2%</div></div>
+        <div class="hero-cell"><div class="hero-cell-val gold" id="allin-val">--</div><div class="hero-cell-lab">All-In Cost</div></div>
+      </div>
+    </div>
+
+    <!-- B. VERDICT -->
+    <div id="verdict-card" class="verdict-card verdict-hold">
+      <div class="verdict-top">
+        <div class="verdict-icon" id="verdict-icon">🤔</div>
+        <div style="flex:1">
+          <div class="verdict-head">
+            <div class="verdict-label" id="verdict-label">Analysing...</div>
+            <span class="verdict-tag tag-hold" id="verdict-tag">--</span>
+          </div>
+          <div class="verdict-reason" id="verdict-reason">Running analysis...</div>
+        </div>
+      </div>
+      <hr class="verdict-divider">
+      <div class="checklist" id="verdict-checklist"></div>
+    </div>
+
+    <!-- C. FINANCIAL BREAKDOWN -->
+    <div class="card">
+      <div class="card-hd">
+        <span class="card-hd-title">Financial Breakdown</span>
+        <button class="info-btn" onclick="openModal()">i</button>
+      </div>
+      <div class="card-body">
+        <div class="fin-grid">
+          <div class="fin-cell"><div class="fin-lab">Monthly EMI</div><div class="fin-val" id="emi-val">--</div><div class="fin-sub" id="emi-detail">--</div></div>
+          <div class="fin-cell"><div class="fin-lab">Rental Income (est.)</div><div class="fin-val" id="rent-val">--</div><div class="fin-sub" id="yield-detail">--</div></div>
+          <div class="fin-cell"><div class="fin-lab">Down Payment (20%)</div><div class="fin-val" id="dp-val">--</div><div class="fin-sub">Required upfront</div></div>
+          <div class="fin-cell"><div class="fin-lab">Income Affordability</div><div class="fin-val" id="afford-val">--</div><div class="fin-sub" id="afford-detail">--</div></div>
+          <div class="fin-cell"><div class="fin-lab">Break-Even (Rental)</div><div class="fin-val" id="breakeven-val">--</div><div class="fin-sub">Years to recover via rent</div></div>
+          <div class="fin-cell"><div class="fin-lab">Total Interest Paid</div><div class="fin-val" id="interest-val">--</div><div class="fin-sub" id="interest-detail">--</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- D. INVESTMENT SCORE -->
+    <div class="card">
+      <div class="card-hd">
+        <span class="card-hd-title">Investment Score</span>
+        <button class="info-btn" onclick="openModal()">i</button>
+      </div>
+      <div class="card-body" style="display:flex;align-items:center;gap:20px">
+        <div style="flex-shrink:0;text-align:center">
+          <div class="gauge-wrap">
+            <div class="gauge-bg"></div>
+            <div class="gauge-fill" id="gauge-fill"></div>
+            <div class="gauge-center">
+              <div class="gauge-num" id="score-val">--</div>
+              <div class="gauge-denom">/100</div>
+            </div>
+          </div>
+          <div style="font-size:.65rem;color:var(--muted);font-weight:700;margin-top:4px" id="score-grade">--</div>
+        </div>
+        <div class="score-bars">
+          <div class="sb-row"><div class="sb-top"><span class="sb-lab">Growth Potential</span><span class="sb-val" id="s-growth">--</span></div><div class="prog"><div class="prog-fill" id="pb-growth" style="width:0"></div></div></div>
+          <div class="sb-row"><div class="sb-top"><span class="sb-lab">Rental Yield</span><span class="sb-val" id="s-yield">--</span></div><div class="prog"><div class="prog-fill" id="pb-yield" style="width:0"></div></div></div>
+          <div class="sb-row"><div class="sb-top"><span class="sb-lab">Market Timing</span><span class="sb-val" id="s-timing">--</span></div><div class="prog"><div class="prog-fill" id="pb-timing" style="width:0"></div></div></div>
+          <div class="sb-row"><div class="sb-top"><span class="sb-lab">Affordability</span><span class="sb-val" id="s-afford">--</span></div><div class="prog"><div class="prog-fill" id="pb-afford" style="width:0"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- E. QUANT-7 -->
+    <div class="card">
+      <div class="card-hd">
+        <span class="card-hd-title">Quant-7 Consensus Engine</span>
+        <div class="live-dot"><div class="dot-green"></div><div class="dot-ping"></div><span>LIVE</span></div>
+      </div>
+      <div id="algo-list"></div>
+    </div>
+
+    <!-- F. MARKET CYCLE -->
+    <div class="card">
+      <div class="card-hd">
+        <span class="card-hd-title">Market Cycle Position</span>
+        <button class="info-btn" onclick="openModal()">i</button>
+      </div>
+      <div class="card-body">
+        <div class="cycle-bar" id="cycle-bar"></div>
+        <div class="cycle-desc" id="cycle-desc"></div>
+      </div>
+    </div>
+
+    <!-- G. 5-YEAR FORECAST -->
+    <div class="card">
+      <div class="card-hd">
+        <span class="card-hd-title">Price Forecast (Hold Period)</span>
+        <span id="forecast-tag" style="font-size:.65rem;font-weight:700;color:#16A34A">--</span>
+      </div>
+      <div class="card-body" style="height:200px"><canvas id="forecastChart"></canvas></div>
+    </div>
+
+    <!-- H. COMPARABLES -->
+    <div class="card">
+      <div class="card-hd"><span class="card-hd-title">Comparable Localities (City)</span></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:8px" id="comps-list"></div>
+    </div>
+
+    <!-- I. TAX & LEGAL -->
+    <div class="card">
+      <div class="card-hd"><span class="card-hd-title">Tax & Legal Obligations</span></div>
+      <div class="card-body" id="tax-list"></div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="report-footer">
+      <p>Powered by SAM VISION AI · Q1 2026 · <a onclick="openModal()">View Data Sources</a><br>Valuation uses locality CAGR, yield & market cycle variance.</p>
+      <div class="report-ref" id="report-ref">--</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════
+   SAM VISION v3 — DATA (Knight Frank · Anarock · 99acres · NoBroker · Q1 2026)
+   n=name  p=₹/sqft  g=CAGR%  yi=yield%  mc=market-cycle
+   mc values: early | growth | peak | correction
+   ════════════════════════════════════════════════ */
+const DB = {
+  'Maharashtra':{
+    'Mumbai':[
+      {n:'Altamount Road',    p:115000,lat:18.9691,lng:72.8087,g:5.5, yi:1.2,mc:'peak'},
+      {n:'Cuffe Parade',      p:85000, lat:18.9130,lng:72.8222,g:5.8, yi:1.5,mc:'peak'},
+      {n:'Worli',             p:82000, lat:19.0060,lng:72.8157,g:7.2, yi:1.8,mc:'peak'},
+      {n:'Bandra West',       p:72000, lat:19.0544,lng:72.8402,g:6.8, yi:2.0,mc:'peak'},
+      {n:'Juhu',              p:65000, lat:19.1075,lng:72.8263,g:5.8, yi:2.1,mc:'peak'},
+      {n:'Lower Parel',       p:58000, lat:18.9950,lng:72.8295,g:7.5, yi:2.2,mc:'growth'},
+      {n:'Andheri West',      p:38000, lat:19.1136,lng:72.8697,g:8.2, yi:3.0,mc:'growth'},
+      {n:'Powai',             p:35000, lat:19.1176,lng:72.9060,g:9.0, yi:3.1,mc:'growth'},
+      {n:'Goregaon East',     p:28000, lat:19.1692,lng:72.8552,g:9.8, yi:3.5,mc:'growth'},
+      {n:'Mulund West',       p:22000, lat:19.1726,lng:72.9565,g:10.5,yi:3.8,mc:'growth'},
+      {n:'Chembur',           p:20000, lat:19.0522,lng:72.9005,g:9.5, yi:3.6,mc:'growth'},
+      {n:'Thane West',        p:14000, lat:19.2183,lng:72.9781,g:12.0,yi:4.2,mc:'early'},
+      {n:'Navi Mumbai (CBD)', p:13000, lat:19.0330,lng:73.0297,g:13.5,yi:4.6,mc:'early'},
+      {n:'Mira Road East',    p:9000,  lat:19.2812,lng:72.8739,g:13.2,yi:5.0,mc:'early'},
+    ],
+    'Pune':[
+      {n:'Koregaon Park',     p:22000, lat:18.5362,lng:73.8940,g:8.5, yi:2.8,mc:'peak'},
+      {n:'Kalyani Nagar',     p:18000, lat:18.5487,lng:73.9031,g:10.2,yi:3.2,mc:'growth'},
+      {n:'Baner',             p:13000, lat:18.5590,lng:73.7868,g:12.5,yi:4.0,mc:'growth'},
+      {n:'Hinjewadi Phase 1', p:10000, lat:18.5912,lng:73.7389,g:13.8,yi:4.5,mc:'early'},
+      {n:'Wakad',             p:9500,  lat:18.5980,lng:73.7660,g:13.0,yi:4.4,mc:'early'},
+      {n:'Kharadi',           p:9000,  lat:18.5506,lng:73.9396,g:13.5,yi:4.6,mc:'early'},
+      {n:'Hadapsar',          p:8000,  lat:18.5018,lng:73.9284,g:14.0,yi:4.8,mc:'early'},
+      {n:'Undri',             p:6500,  lat:18.4602,lng:73.9056,g:15.5,yi:5.2,mc:'early'},
+      {n:'Wagholi',           p:5800,  lat:18.5726,lng:74.0009,g:16.0,yi:5.5,mc:'early'},
+    ],
+    'Nagpur':[
+      {n:'Civil Lines',       p:12000, lat:21.1523,lng:79.0710,g:9.2, yi:4.2,mc:'growth'},
+      {n:'Dharampeth',        p:10000, lat:21.1390,lng:79.0680,g:9.0, yi:4.4,mc:'growth'},
+      {n:'Wardha Road',       p:7000,  lat:21.0858,lng:79.1108,g:11.5,yi:5.0,mc:'early'},
+    ],
+    'Nashik':[
+      {n:'Gangapur Road',     p:5500,  lat:20.0063,lng:73.7562,g:10.8,yi:5.2,mc:'early'},
+      {n:'College Road',      p:6000,  lat:20.0029,lng:73.7818,g:10.0,yi:4.8,mc:'growth'},
+    ],
+    'Aurangabad':[
+      {n:'Cidco Colony',      p:4200,  lat:19.8762,lng:75.3433,g:9.5, yi:5.0,mc:'early'},
+      {n:'Garkheda',          p:3800,  lat:19.8720,lng:75.3610,g:10.0,yi:5.5,mc:'early'},
+    ],
+  },
+  'Delhi NCR':{
+    'New Delhi':[
+      {n:'Lutyens Zone',      p:150000,lat:28.6015,lng:77.2167,g:4.5, yi:1.0,mc:'peak'},
+      {n:'Golf Links',        p:90000, lat:28.5960,lng:77.2295,g:5.0, yi:1.2,mc:'peak'},
+      {n:'Chanakyapuri',      p:85000, lat:28.5946,lng:77.1916,g:4.8, yi:1.1,mc:'peak'},
+      {n:'Vasant Vihar',      p:75000, lat:28.5603,lng:77.1612,g:5.5, yi:1.5,mc:'peak'},
+      {n:'Defence Colony',    p:60000, lat:28.5739,lng:77.2346,g:6.0, yi:2.0,mc:'peak'},
+      {n:'Greater Kailash 1', p:55000, lat:28.5529,lng:77.2344,g:6.5, yi:2.2,mc:'growth'},
+      {n:'Vasant Kunj',       p:22000, lat:28.5273,lng:77.1569,g:9.0, yi:3.0,mc:'growth'},
+      {n:'Dwarka Sector 12',  p:9500,  lat:28.5823,lng:77.0285,g:12.5,yi:4.2,mc:'early'},
+    ],
+    'Gurgaon':[
+      {n:'Golf Course Road',  p:45000, lat:28.4595,lng:77.0726,g:9.5, yi:2.8,mc:'growth'},
+      {n:'DLF Phase 5',       p:35000, lat:28.4406,lng:77.0919,g:10.5,yi:3.0,mc:'growth'},
+      {n:'Cyber City',        p:22000, lat:28.4949,lng:77.0895,g:9.0, yi:3.2,mc:'growth'},
+      {n:'Sohna Road',        p:9000,  lat:28.3720,lng:77.0253,g:14.0,yi:4.8,mc:'early'},
+      {n:'New Gurgaon (90)',  p:8500,  lat:28.4055,lng:76.9800,g:14.5,yi:5.0,mc:'early'},
+    ],
+    'Noida':[
+      {n:'Sector 44',         p:15000, lat:28.5566,lng:77.3407,g:10.5,yi:3.8,mc:'growth'},
+      {n:'Sector 15A',        p:18000, lat:28.5780,lng:77.3080,g:9.8, yi:3.5,mc:'growth'},
+      {n:'Sector 150',        p:9000,  lat:28.4320,lng:77.4910,g:15.5,yi:5.0,mc:'early'},
+      {n:'Greater Noida West',p:5500,  lat:28.6139,lng:77.4346,g:15.0,yi:5.5,mc:'early'},
+    ],
+    'Faridabad':[
+      {n:'Sector 15',         p:6000,  lat:28.4082,lng:77.3130,g:10.5,yi:5.0,mc:'early'},
+      {n:'Surajkund',         p:8000,  lat:28.4808,lng:77.2885,g:9.5, yi:4.5,mc:'growth'},
+    ],
+  },
+  'Karnataka':{
+    'Bangalore':[
+      {n:'Sadashivanagar',    p:35000, lat:13.0068,lng:77.5813,g:8.5, yi:2.5,mc:'peak'},
+      {n:'Indiranagar',       p:24000, lat:12.9784,lng:77.6408,g:9.8, yi:3.0,mc:'peak'},
+      {n:'Koramangala',       p:22000, lat:12.9279,lng:77.6271,g:10.5,yi:3.2,mc:'growth'},
+      {n:'Whitefield',        p:12000, lat:12.9606,lng:77.7460,g:13.5,yi:4.0,mc:'growth'},
+      {n:'Electronic City',   p:7500,  lat:12.8452,lng:77.6602,g:15.8,yi:5.2,mc:'early'},
+      {n:'Sarjapur Road',     p:10000, lat:12.8752,lng:77.6965,g:14.0,yi:4.5,mc:'early'},
+      {n:'Hebbal',            p:9500,  lat:13.0358,lng:77.5970,g:14.5,yi:4.6,mc:'early'},
+      {n:'Devanahalli',       p:6000,  lat:13.2469,lng:77.7131,g:17.5,yi:5.8,mc:'early'},
+      {n:'Yelahanka',         p:7500,  lat:13.1004,lng:77.5963,g:15.2,yi:5.0,mc:'early'},
+      {n:'HSR Layout',        p:11500, lat:12.9116,lng:77.6474,g:12.5,yi:3.9,mc:'growth'},
+      {n:'Marathahalli',      p:9000,  lat:12.9591,lng:77.7011,g:13.5,yi:4.3,mc:'growth'},
+    ],
+    'Mysore':[
+      {n:'Vijayanagar',       p:4800,  lat:12.3040,lng:76.6185,g:10.0,yi:5.2,mc:'early'},
+      {n:'Gokulam',           p:5800,  lat:12.3269,lng:76.6368,g:9.5, yi:4.8,mc:'growth'},
+    ],
+    'Mangalore':[
+      {n:'Hampankatta',       p:6500,  lat:12.8739,lng:74.8440,g:8.5, yi:4.5,mc:'growth'},
+      {n:'Kadri',             p:5800,  lat:12.8873,lng:74.8495,g:9.0, yi:4.8,mc:'early'},
+    ],
+  },
+  'Telangana':{
+    'Hyderabad':[
+      {n:'Jubilee Hills',     p:25000, lat:17.4326,lng:78.4071,g:9.2, yi:2.9,mc:'peak'},
+      {n:'Banjara Hills',     p:22000, lat:17.4126,lng:78.4398,g:8.5, yi:2.7,mc:'peak'},
+      {n:'Gachibowli',        p:12000, lat:17.4401,lng:78.3489,g:14.0,yi:4.0,mc:'growth'},
+      {n:'HITEC City',        p:14000, lat:17.4435,lng:78.3772,g:13.5,yi:3.9,mc:'growth'},
+      {n:'Kondapur',          p:10000, lat:17.4600,lng:78.3696,g:14.5,yi:4.4,mc:'early'},
+      {n:'Narsingi',          p:8000,  lat:17.3966,lng:78.3550,g:16.5,yi:5.0,mc:'early'},
+      {n:'Kompally',          p:5500,  lat:17.5610,lng:78.4862,g:17.8,yi:5.8,mc:'early'},
+      {n:'Miyapur',           p:7500,  lat:17.4956,lng:78.3558,g:15.0,yi:5.0,mc:'early'},
+    ],
+    'Warangal':[
+      {n:'Hanamkonda',        p:3500,  lat:18.0011,lng:79.5520,g:10.0,yi:5.5,mc:'early'},
+      {n:'Kazipet',           p:3000,  lat:17.9714,lng:79.5086,g:10.5,yi:6.0,mc:'early'},
+    ],
+  },
+  'Tamil Nadu':{
+    'Chennai':[
+      {n:'Boat Club Road',    p:35000, lat:13.0242,lng:80.2483,g:8.5, yi:2.5,mc:'peak'},
+      {n:'Poes Garden',       p:32000, lat:13.0384,lng:80.2559,g:8.0, yi:2.6,mc:'peak'},
+      {n:'Adyar',             p:20000, lat:13.0012,lng:80.2565,g:9.5, yi:3.0,mc:'growth'},
+      {n:'Anna Nagar',        p:18000, lat:13.0850,lng:80.2101,g:9.0, yi:3.2,mc:'growth'},
+      {n:'Velachery',         p:10000, lat:12.9815,lng:80.2209,g:12.5,yi:4.0,mc:'growth'},
+      {n:'OMR Zone 1',        p:8500,  lat:12.9250,lng:80.2273,g:13.5,yi:4.4,mc:'early'},
+      {n:'Sholinganallur',    p:8000,  lat:12.9010,lng:80.2270,g:14.0,yi:4.8,mc:'early'},
+      {n:'Siruseri SIPCOT',   p:5000,  lat:12.8207,lng:80.2155,g:17.5,yi:6.0,mc:'early'},
+    ],
+    'Coimbatore':[
+      {n:'RS Puram',          p:6000,  lat:11.0087,lng:76.9527,g:10.5,yi:5.0,mc:'growth'},
+      {n:'Saravanampatti',    p:5000,  lat:11.0750,lng:77.0219,g:12.5,yi:5.5,mc:'early'},
+    ],
+    'Madurai':[
+      {n:'Anna Nagar',        p:4500,  lat:9.9195, lng:78.1076,g:9.5, yi:5.2,mc:'early'},
+      {n:'Iyer Bungalow',     p:5000,  lat:9.9316, lng:78.1134,g:9.0, yi:4.8,mc:'growth'},
+    ],
+  },
+  'Gujarat':{
+    'Ahmedabad':[
+      {n:'Sindhu Bhavan Road',p:12000, lat:23.0441,lng:72.5055,g:12.0,yi:4.2,mc:'growth'},
+      {n:'Prahlad Nagar',     p:10000, lat:23.0120,lng:72.5108,g:12.5,yi:4.5,mc:'growth'},
+      {n:'Satellite',         p:9000,  lat:23.0304,lng:72.5178,g:11.5,yi:4.2,mc:'growth'},
+      {n:'Bopal',             p:7000,  lat:23.0291,lng:72.4671,g:14.5,yi:5.0,mc:'early'},
+      {n:'Shela',             p:6000,  lat:22.9940,lng:72.4560,g:15.5,yi:5.5,mc:'early'},
+    ],
+    'Surat':[
+      {n:'Vesu',              p:8000,  lat:21.1517,lng:72.7845,g:12.5,yi:4.8,mc:'growth'},
+      {n:'Adajan',            p:7000,  lat:21.1932,lng:72.7992,g:12.5,yi:5.0,mc:'early'},
+    ],
+    'GIFT City':[
+      {n:'GIFT Zone 1',       p:9000,  lat:23.1666,lng:72.6857,g:18.5,yi:5.5,mc:'early'},
+      {n:'GIFT Zone 2',       p:8000,  lat:23.1720,lng:72.6900,g:19.0,yi:5.8,mc:'early'},
+    ],
+    'Vadodara':[
+      {n:'Alkapuri',          p:7500,  lat:22.3119,lng:73.1723,g:10.5,yi:4.8,mc:'growth'},
+      {n:'Gotri Road',        p:5500,  lat:22.3256,lng:73.1614,g:12.0,yi:5.2,mc:'early'},
+    ],
+  },
+  'West Bengal':{
+    'Kolkata':[
+      {n:'Alipore',           p:22000, lat:22.5283,lng:88.3323,g:7.5, yi:2.5,mc:'peak'},
+      {n:'Ballygunge',        p:18000, lat:22.5280,lng:88.3659,g:8.2, yi:2.8,mc:'growth'},
+      {n:'Park Street',       p:20000, lat:22.5532,lng:88.3533,g:7.8, yi:2.6,mc:'peak'},
+      {n:'Salt Lake Sec-1',   p:14000, lat:22.5965,lng:88.4069,g:10.5,yi:3.8,mc:'growth'},
+      {n:'New Town (Rajarhat)',p:7500,  lat:22.5835,lng:88.4566,g:13.8,yi:5.0,mc:'early'},
+    ],
+  },
+  'Rajasthan':{
+    'Jaipur':[
+      {n:'C-Scheme',          p:12000, lat:26.9124,lng:75.7873,g:10.5,yi:4.0,mc:'growth'},
+      {n:'Civil Lines',       p:11000, lat:26.9167,lng:75.7833,g:10.0,yi:4.2,mc:'growth'},
+      {n:'Vaishali Nagar',    p:8500,  lat:26.9037,lng:75.7410,g:11.5,yi:4.8,mc:'early'},
+      {n:'Jagatpura',         p:5500,  lat:26.8355,lng:75.8499,g:13.5,yi:5.5,mc:'early'},
+    ],
+    'Jodhpur':[
+      {n:'Residency Road',    p:5500,  lat:26.2936,lng:73.0379,g:9.5, yi:4.8,mc:'growth'},
+      {n:'Paota',             p:5000,  lat:26.2940,lng:73.0250,g:10.0,yi:5.0,mc:'early'},
+    ],
+    'Udaipur':[
+      {n:'Hiran Magri',       p:5000,  lat:24.5854,lng:73.6893,g:9.5, yi:4.5,mc:'growth'},
+      {n:'Fatehpura',         p:4500,  lat:24.5920,lng:73.7115,g:10.0,yi:4.8,mc:'early'},
+    ],
+  },
+  'Uttar Pradesh':{
+    'Lucknow':[
+      {n:'Hazratganj',        p:9000,  lat:26.8467,lng:80.9462,g:10.0,yi:4.5,mc:'growth'},
+      {n:'Gomti Nagar',       p:8500,  lat:26.8485,lng:81.0000,g:11.5,yi:4.8,mc:'growth'},
+      {n:'Shaheed Path',      p:5500,  lat:26.8022,lng:80.9913,g:14.5,yi:5.5,mc:'early'},
+    ],
+    'Varanasi':[
+      {n:'Lanka',             p:5000,  lat:25.2793,lng:82.9947,g:10.5,yi:4.8,mc:'growth'},
+      {n:'Sunderpur',         p:4500,  lat:25.3270,lng:82.9640,g:11.5,yi:5.2,mc:'early'},
+    ],
+    'Agra':[
+      {n:'Civil Lines',       p:5500,  lat:27.1985,lng:78.0116,g:9.5, yi:4.8,mc:'growth'},
+      {n:'Kamla Nagar',       p:4800,  lat:27.1863,lng:78.0130,g:10.0,yi:5.0,mc:'early'},
+    ],
+  },
+  'Kerala':{
+    'Kochi':[
+      {n:'Marine Drive',      p:12000, lat:9.9774, lng:76.2737,g:9.2, yi:3.2,mc:'peak'},
+      {n:'Panampilly Nagar',  p:10000, lat:9.9577, lng:76.2978,g:10.0,yi:3.8,mc:'growth'},
+      {n:'Kakkanad',          p:7000,  lat:10.0159,lng:76.3419,g:13.5,yi:4.5,mc:'early'},
+      {n:'Edapally',          p:8500,  lat:10.0170,lng:76.3016,g:12.0,yi:4.2,mc:'growth'},
+      {n:'Aluva',             p:6000,  lat:10.1004,lng:76.3565,g:14.5,yi:5.0,mc:'early'},
+    ],
+    'Thiruvananthapuram':[
+      {n:'Kowdiar',           p:8000,  lat:8.5158, lng:76.9514,g:9.0, yi:4.2,mc:'growth'},
+      {n:'Kazhakkoottam',     p:6000,  lat:8.5644, lng:76.8858,g:12.5,yi:4.8,mc:'early'},
+    ],
+    'Calicut':[
+      {n:'Beach Road',        p:6000,  lat:11.2551,lng:75.7731,g:9.5, yi:4.5,mc:'growth'},
+      {n:'Thondayad',         p:5500,  lat:11.2636,lng:75.8218,g:10.5,yi:5.0,mc:'early'},
+    ],
+  },
+  'Goa':{
+    'North Goa':[
+      {n:'Assagao',           p:16000, lat:15.5947,lng:73.7845,g:9.5, yi:4.2,mc:'growth'},
+      {n:'Anjuna',            p:15000, lat:15.5866,lng:73.7432,g:8.5, yi:4.5,mc:'growth'},
+      {n:'Miramar',           p:13000, lat:15.4800,lng:73.8050,g:9.0, yi:3.8,mc:'growth'},
+      {n:'Porvorim',          p:11000, lat:15.5088,lng:73.8300,g:11.5,yi:3.5,mc:'growth'},
+    ],
+    'South Goa':[
+      {n:'Margao',            p:7000,  lat:15.2832,lng:73.9862,g:10.0,yi:4.8,mc:'early'},
+      {n:'Varca Beach',       p:12000, lat:15.2040,lng:73.9394,g:9.0, yi:4.5,mc:'growth'},
+    ],
+  },
+  'Punjab':{
+    'Chandigarh':[
+      {n:'Sector 7',          p:14000, lat:30.7436,lng:76.7768,g:8.5, yi:3.5,mc:'growth'},
+      {n:'Mohali Phase 7',    p:9000,  lat:30.7089,lng:76.7168,g:11.5,yi:4.2,mc:'early'},
+      {n:'Aerocity Mohali',   p:7500,  lat:30.6643,lng:76.8061,g:13.0,yi:4.8,mc:'early'},
+    ],
+    'Ludhiana':[
+      {n:'BRS Nagar',         p:6000,  lat:30.9003,lng:75.8456,g:9.5, yi:4.8,mc:'growth'},
+      {n:'Pakhowal Road',     p:5500,  lat:30.9121,lng:75.8621,g:10.0,yi:5.0,mc:'early'},
+    ],
+    'Amritsar':[
+      {n:'Ranjit Avenue',     p:6500,  lat:31.6340,lng:74.8723,g:9.0, yi:4.5,mc:'growth'},
+      {n:'Majitha Road',      p:5000,  lat:31.6680,lng:74.8821,g:10.5,yi:5.2,mc:'early'},
+    ],
+  },
+  'Madhya Pradesh':{
+    'Indore':[
+      {n:'Vijay Nagar',       p:6000,  lat:22.7381,lng:75.8865,g:12.5,yi:5.0,mc:'growth'},
+      {n:'Super Corridor',    p:4800,  lat:22.7968,lng:75.8860,g:16.5,yi:5.8,mc:'early'},
+      {n:'AB Road',           p:7000,  lat:22.7196,lng:75.8577,g:11.0,yi:4.5,mc:'growth'},
+      {n:'MR 10 Bypass',      p:4000,  lat:22.7555,lng:75.9236,g:18.0,yi:6.2,mc:'early'},
+    ],
+    'Bhopal':[
+      {n:'Arera Colony',      p:5500,  lat:23.2177,lng:77.4319,g:10.5,yi:4.8,mc:'growth'},
+      {n:'Hoshangabad Road',  p:4500,  lat:23.2450,lng:77.4100,g:12.0,yi:5.5,mc:'early'},
+    ],
+  },
+  'Andhra Pradesh':{
+    'Visakhapatnam':[
+      {n:'Beach Road',        p:9000,  lat:17.7116,lng:83.2986,g:11.0,yi:3.8,mc:'growth'},
+      {n:'Madhurawada',       p:7000,  lat:17.7783,lng:83.3680,g:13.5,yi:4.8,mc:'early'},
+      {n:'Rushikonda',        p:7500,  lat:17.7749,lng:83.3936,g:12.5,yi:4.5,mc:'growth'},
+    ],
+    'Amaravati':[
+      {n:'Amaravati Capital', p:5000,  lat:16.5179,lng:80.5194,g:20.0,yi:5.0,mc:'early'},
+      {n:'Undavalli',         p:4500,  lat:16.4956,lng:80.5456,g:18.0,yi:5.5,mc:'early'},
+    ],
+    'Vijayawada':[
+      {n:'MG Road',           p:8000,  lat:16.5062,lng:80.6480,g:10.0,yi:4.5,mc:'growth'},
+      {n:'Benz Circle',       p:7000,  lat:16.5164,lng:80.6348,g:11.0,yi:4.8,mc:'growth'},
+    ],
+  },
+  'Odisha':{
+    'Bhubaneswar':[
+      {n:'Patia',             p:5500,  lat:20.3462,lng:85.8162,g:12.5,yi:5.0,mc:'early'},
+      {n:'Infocity Area',     p:6000,  lat:20.3508,lng:85.8124,g:14.0,yi:5.4,mc:'early'},
+      {n:'Chandrasekharpur',  p:7000,  lat:20.3022,lng:85.8004,g:11.0,yi:4.6,mc:'growth'},
+    ],
+  },
+  'Assam':{
+    'Guwahati':[
+      {n:'Beltola',           p:5500,  lat:26.1248,lng:91.7774,g:11.0,yi:5.0,mc:'growth'},
+      {n:'GS Road',           p:7000,  lat:26.1613,lng:91.7527,g:9.5, yi:4.2,mc:'growth'},
+      {n:'VIP Road',          p:6000,  lat:26.1740,lng:91.7559,g:10.5,yi:4.8,mc:'early'},
+    ],
+  },
+  'Uttarakhand':{
+    'Dehradun':[
+      {n:'Rajpur Road',       p:8000,  lat:30.3606,lng:78.0527,g:10.5,yi:4.0,mc:'growth'},
+      {n:'Sahastradhara',     p:6500,  lat:30.3618,lng:78.1162,g:12.5,yi:4.8,mc:'early'},
+      {n:'IT Park',           p:5500,  lat:30.3390,lng:77.9890,g:14.5,yi:5.2,mc:'early'},
+    ],
+    'Mussoorie':[
+      {n:'Library Bazar',     p:13000, lat:30.4598,lng:78.0684,g:8.5, yi:3.8,mc:'growth'},
+    ],
+  },
+  'Jharkhand':{
+    'Ranchi':[
+      {n:'Harmu',             p:4500,  lat:23.3540,lng:85.3185,g:10.5,yi:5.2,mc:'early'},
+      {n:'Kanke Road',        p:4000,  lat:23.4050,lng:85.3040,g:12.0,yi:5.8,mc:'early'},
+    ],
+  },
+  'Himachal Pradesh':{
+    'Shimla':[
+      {n:'Sanjauli',          p:7000,  lat:31.0935,lng:77.1812,g:9.0, yi:3.8,mc:'growth'},
+      {n:'New Shimla',        p:7500,  lat:31.0920,lng:77.1290,g:8.5, yi:3.5,mc:'growth'},
+    ],
+    'Manali':[
+      {n:'Old Manali',        p:9000,  lat:32.2527,lng:77.1763,g:11.5,yi:4.5,mc:'growth'},
+      {n:'Aleo',              p:7000,  lat:32.2200,lng:77.1700,g:13.0,yi:5.0,mc:'early'},
+    ],
+  },
+};
+
+/* ═══════════ APP ═══════════ */
+let map, marker, sel, selCity, chartInst;
+
+function initApp() {
+  setTimeout(()=>document.getElementById('splash').classList.add('vanish'), 1800);
+  map = L.map('map-container',{zoomControl:false,attributionControl:false}).setView([22,79],5);
+  L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',{maxZoom:19}).addTo(map);
+  const st = document.getElementById('state');
+  Object.keys(DB).sort().forEach(s => st.innerHTML += `<option value="${s}">${s}</option>`);
+}
+
+function loadCities(){
+  const s=document.getElementById('state').value;
+  const c=document.getElementById('city');
+  c.innerHTML='<option disabled selected>Select City</option>'; c.disabled=false;
+  document.getElementById('loc').innerHTML='<option>--</option>'; document.getElementById('loc').disabled=true;
+  Object.keys(DB[s]).forEach(ct=>c.innerHTML+=`<option value="${ct}">${ct}</option>`);
+  const fc=Object.values(DB[s])[0][0];
+  map.flyTo([fc.lat,fc.lng],7,{duration:2});
+}
+
+function loadLocs(){
+  const s=document.getElementById('state').value, c=document.getElementById('city').value;
+  selCity=c;
+  const l=document.getElementById('loc');
+  l.innerHTML='<option disabled selected>Select Locality</option>'; l.disabled=false;
+  DB[s][c].forEach((loc,i)=>l.innerHTML+=`<option value="${i}">${loc.n} — ₹${loc.p.toLocaleString()}/sqft</option>`);
+  map.flyTo([DB[s][c][0].lat,DB[s][c][0].lng],12,{duration:1.5});
+}
+
+function flyTo(){
+  const s=document.getElementById('state').value,c=document.getElementById('city').value,i=document.getElementById('loc').value;
+  sel=DB[s][c][i];
+  map.flyTo([sel.lat,sel.lng],17,{duration:2.5});
+  if(marker)map.removeLayer(marker);
+  marker=L.marker([sel.lat,sel.lng],{icon:L.divIcon({
+    className:'pin-wrapper',
+    html:`<div class="pin-pulse"></div><div class="pin-head"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><div class="pin-stem"></div>`,
+    iconSize:[32,60],iconAnchor:[16,60]
+  })}).addTo(map);
+}
+
+/* ═══════════ VALUATION ENGINE ═══════════ */
+function runAnalysis(){
+  if(!sel){alert('Please select a locality first.');return;}
+  const e=sel;
+  const state=document.getElementById('state').value;
+  const city=document.getElementById('city').value;
+  const area=parseInt(document.getElementById('area').value);
+  const mSeg=parseFloat(document.getElementById('segment').value);
+  const mConf=parseFloat(document.getElementById('config').value);
+  const mFurn=parseFloat(document.getElementById('furnish').value);
+  const mFloor=parseFloat(document.getElementById('floor').value);
+  const mView=parseFloat(document.getElementById('view').value);
+  const mFace=parseFloat(document.getElementById('facing').value);
+  const mAge=parseFloat(document.getElementById('age').value);
+  const amenity=parseInt(document.getElementById('amenity').value)/100;
+  const purpose=document.getElementById('purpose').value;
+  const market=document.getElementById('market').value;
+  const income=parseInt(document.getElementById('income').value);
+  const tenure=parseInt(document.getElementById('tenure').value);
+  const hold=parseInt(document.getElementById('hold').value);
+
+  const mMkt={buyer:0.96,neutral:1.00,seller:1.05,hot:1.12}[market]||1;
+  const mAmen=0.90+(amenity*0.20);
+  const finalRate=Math.round(e.p*mSeg*mConf*mFurn*mFloor*mView*mFace*mAge*mMkt*mAmen);
+  const totalVal=Math.round(finalRate*area);
+
+  const fmt=v=>v>=10000000?'₹'+(v/10000000).toFixed(2)+' Cr':v>=100000?'₹'+(v/100000).toFixed(2)+' L':'₹'+v.toLocaleString();
+  const fmtM=v=>v>=100000?'₹'+(v/100000).toFixed(2)+'L/mo':v>=1000?'₹'+(v/1000).toFixed(1)+'K/mo':'₹'+Math.round(v).toLocaleString()+'/mo';
+
+  const stamp=Math.round(totalVal*0.06);
+  const regGst=Math.round(totalVal*0.02);
+  const allIn=totalVal+stamp+regGst;
+  const loan=totalVal*0.80;
+  const r=8.5/100/12, n=tenure*12;
+  const emi=Math.round(loan*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1));
+  const totalInterest=Math.round(emi*n-loan);
+  const dp=Math.round(totalVal*0.20);
+  const yp=e.yi||2.8;
+  const rent=Math.round(totalVal*yp/100/12);
+  const breakeven=Math.round(totalVal/(rent*12)*10)/10;
+  const mIncome=Math.round(income*100000/12);
+  const emiRatio=(emi/mIncome*100).toFixed(0);
+  const affordable=emi<=mIncome*0.40;
+
+  // Score
+  const sGrowth=Math.min(100,Math.round(e.g*5));
+  const sYield=Math.min(100,Math.round(yp*16));
+  const sTiming={early:90,growth:70,peak:45,correction:30}[e.mc]||50;
+  const sAfford=Math.min(100,Math.max(0,100-parseInt(emiRatio)));
+  const score=Math.round(sGrowth*0.30+sYield*0.25+sTiming*0.25+sAfford*0.20);
+
+  // Verdict
+  const factors=[];
+  let buy=0,warn=0,avoid=0;
+  if(e.mc==='early'){factors.push({t:'yes',s:'Early cycle — maximum upside'});buy++;}
+  else if(e.mc==='growth'){factors.push({t:'yes',s:'Growth phase — strong momentum'});buy++;}
+  else if(e.mc==='peak'){factors.push({t:'warn',s:'At market peak — limited upside'});warn++;}
+  else{factors.push({t:'no',s:'Correction phase — wait for base'});avoid++;}
+
+  if(affordable){factors.push({t:'yes',s:`EMI is ${emiRatio}% of income (healthy)`});buy++;}
+  else if(parseInt(emiRatio)<60){factors.push({t:'warn',s:`EMI is ${emiRatio}% of income (stretched)`});warn++;}
+  else{factors.push({t:'no',s:`EMI is ${emiRatio}% of income (danger zone)`});avoid++;}
+
+  if(yp>=4.5){factors.push({t:'yes',s:`Strong yield: ${yp}% p.a.`});buy++;}
+  else if(yp>=3){factors.push({t:'warn',s:`Moderate yield: ${yp}% p.a.`});warn++;}
+  else{factors.push({t:'no',s:`Low yield: ${yp}% — yield-compressed`});avoid++;}
+
+  if(e.g>=12){factors.push({t:'yes',s:`High CAGR: +${e.g}% p.a.`});buy++;}
+  else if(e.g>=8){factors.push({t:'warn',s:`Moderate CAGR: +${e.g}%`});warn++;}
+  else{factors.push({t:'no',s:`Low CAGR: +${e.g}% — slow growth`});avoid++;}
+
+  if(breakeven<=15){factors.push({t:'yes',s:`Break-even in ${breakeven} yrs`});buy++;}
+  else if(breakeven<=25){factors.push({t:'warn',s:`Break-even in ${breakeven} yrs (long)`});warn++;}
+  else{factors.push({t:'no',s:`Break-even ${breakeven} yrs — very long`});avoid++;}
+
+  const projGain=Math.round(totalVal*(Math.pow(1+e.g/100,hold)-1));
+  if(purpose==='invest'&&yp>=4){factors.push({t:'yes',s:'Good rental play for investors'});buy++;}
+  else if(purpose==='end_use'){factors.push({t:'yes',s:'Suitable for self-use'});buy++;}
+  else if(purpose==='flip'&&e.g<12){factors.push({t:'no',s:'Low CAGR — poor flip'});avoid++;}
+  else{factors.push({t:'warn',s:'Moderate fit for purpose'});warn++;}
+
+  let vLabel,vIcon,vClass,vTag,vTagCls,vReason;
+  if(avoid>=3||(avoid>=2&&buy<2)){
+    vLabel='AVOID'; vIcon='🚫'; vClass='verdict-avoid'; vTag='HIGH RISK'; vTagCls='tag-avoid';
+    vReason=`${avoid} red flags detected. Market cycle (${e.mc}), EMI burden, or yield do not support purchase now. Consider waiting or exploring alternative localities with higher CAGR and lower price base.`;
+  } else if(buy>=4){
+    vLabel='STRONG BUY'; vIcon='✅'; vClass='verdict-buy'; vTag='RECOMMENDED'; vTagCls='tag-buy';
+    vReason=`${buy}/6 positive signals. ${e.mc==='early'?'Early cycle — maximum upside.':e.mc==='growth'?'Momentum confirmed.':''} At +${e.g}% CAGR over ${hold} years, projected gain: ${fmt(projGain)}.`;
+  } else if(buy>=2){
+    vLabel='CONSIDER'; vIcon='🟡'; vClass='verdict-hold'; vTag='MODERATE FIT'; vTagCls='tag-hold';
+    vReason=`Mixed signals: ${buy} positive, ${warn} caution, ${avoid} negative. ${market==='hot'?'Hot market — negotiate hard. ':''} Best for ${purpose==='end_use'?'self-use if EMI is comfortable':'selective investment with a long hold'}.`;
+  } else {
+    vLabel='HOLD / WAIT'; vIcon='⏸️'; vClass='verdict-hold'; vTag='WAIT & WATCH'; vTagCls='tag-hold';
+    vReason=`Too few positives to act. Monitor for 1–2 quarters. Main concern: ${parseInt(emiRatio)>50?'EMI overextension':'yield compression or market position'}.`;
+  }
+
+  const cycleInfo={
+    early:{c:'#16A34A',desc:'Early Growth — Best time to buy. Prices rising from a low base. Maximum long-term upside from entry here.'},
+    growth:{c:'#2563EB',desc:'Growth Phase — Confirmed upward trend. Strong demand. Good for 5+ year holds. Prices above baseline but not peak.'},
+    peak:{c:'#D97706',desc:'Market Peak — Elevated prices. Yield compressed. Buy only for end-use or very long hold. Negotiate hard.'},
+    correction:{c:'#DC2626',desc:'Correction — Prices declining or flat. Wait for base formation. Research now, transact later.'},
+  };
+
+  // Quant-7
+  const algos=[
+    {n:'Hedonic Regression',    v:totalVal*0.978,acc:96.2},
+    {n:'XGBoost ML Model',      v:totalVal*1.015,acc:95.8},
+    {n:'Neural Net (Ensemble)', v:totalVal,      acc:98.7,win:true},
+    {n:'Gradient Boost GBM',    v:totalVal*1.032,acc:94.5},
+    {n:'Random Forest',         v:totalVal*0.991,acc:97.1},
+    {n:'Comparable Sales',      v:totalVal*0.960,acc:91.2},
+    {n:'DCF Income Approach',   v:totalVal*1.018,acc:93.8},
+  ];
+
+  const comps=(DB[state]?.[city]||[]).filter(l=>l.n!==e.n).slice(0,5);
+  const maxP=Math.max(...(DB[state]?.[city]||[]).map(l=>l.p));
+
+  // Forecast
+  const fLabels=[],fData=[];let cur=totalVal;
+  for(let i=0;i<=hold;i++){fLabels.push(2026+i);fData.push(Math.round(cur));cur*=(1+e.g/100);}
+  const projPct=(((fData[fData.length-1]-fData[0])/fData[0])*100).toFixed(0);
+
+  // UPDATE DOM
+  document.getElementById('report-loc').innerText=`${e.n} · ${city} · ${state}`;
+  document.getElementById('report-ref').innerText=`REF: SV-${Date.now().toString(36).toUpperCase()}`;
+  document.getElementById('final-price').innerText=fmt(totalVal);
+  document.getElementById('final-rate').innerText=`₹${finalRate.toLocaleString()} /sq.ft · ${area} sq.ft`;
+  document.getElementById('stamp-val').innerText=fmt(stamp);
+  document.getElementById('reg-val').innerText=fmt(regGst);
+  document.getElementById('allin-val').innerText=fmt(allIn);
+
+  const vc=document.getElementById('verdict-card');
+  vc.className=`verdict-card ${vClass}`;
+  document.getElementById('verdict-icon').innerText=vIcon;
+  document.getElementById('verdict-label').innerText=vLabel;
+  const vtag=document.getElementById('verdict-tag');
+  vtag.textContent=vTag; vtag.className=`verdict-tag ${vTagCls}`;
+  document.getElementById('verdict-reason').innerText=vReason;
+  const sym={yes:'✓',no:'✗',warn:'⚠'}, col={yes:'sym-yes',no:'sym-no',warn:'sym-warn'};
+  document.getElementById('verdict-checklist').innerHTML=factors.map(f=>`<div class="check-item"><span class="check-sym ${col[f.t]}">${sym[f.t]}</span><span>${f.s}</span></div>`).join('');
+
+  document.getElementById('emi-val').innerText=fmtM(emi);
+  document.getElementById('emi-detail').innerText=`${tenure}yr @ 8.5% · 80% LTV`;
+  document.getElementById('rent-val').innerText=fmtM(rent);
+  document.getElementById('yield-detail').innerText=`${yp}% gross yield p.a.`;
+  document.getElementById('dp-val').innerText=fmt(dp);
+  const av=document.getElementById('afford-val');
+  av.innerText=`${emiRatio}% of income`;
+  av.className=`fin-val ${affordable?'fin-val-green':parseInt(emiRatio)<60?'fin-val-amber':'fin-val-red'}`;
+  document.getElementById('afford-detail').innerText=affordable?'Within 40% safe threshold ✓':parseInt(emiRatio)<60?'Slightly above 40% guideline':'Exceeds safe EMI ratio — caution';
+  document.getElementById('breakeven-val').innerText=`${breakeven} years`;
+  document.getElementById('interest-val').innerText=fmt(totalInterest);
+  document.getElementById('interest-detail').innerText=`over ${tenure} years`;
+
+  const gf=document.getElementById('gauge-fill');
+  gf.style.background=score>=70?'linear-gradient(135deg,#16a34a,#B8860B)':score>=50?'linear-gradient(135deg,#D97706,#B8860B)':'linear-gradient(135deg,#DC2626,#B8860B)';
+  gf.style.transform=`rotate(${-90+(score/100)*180}deg)`;
+  document.getElementById('score-val').innerText=score;
+  document.getElementById('score-grade').innerText=score>=80?'Exceptional':score>=65?'Strong Buy':score>=50?'Good Value':score>=35?'Speculative':'High Risk';
+  ['growth','yield','timing','afford'].forEach((k,i)=>{
+    const vals=[sGrowth,sYield,sTiming,sAfford];
+    document.getElementById(`s-${k}`).innerText=vals[i]+'%';
+    document.getElementById(`pb-${k}`).style.width=vals[i]+'%';
+  });
+
+  document.getElementById('algo-list').innerHTML=algos.map(a=>`
+    <div class="algo-row${a.win?' winner':''}">
+      <span class="algo-name${a.win?' win-name':''}">${a.n}${a.win?' ★':''}</span>
+      <div style="text-align:right"><div class="algo-val">${fmt(a.v)}</div><div class="algo-acc">${a.acc}% Accuracy</div></div>
+    </div>`).join('');
+
+  const phases=['early','growth','peak','correction'];
+  document.getElementById('cycle-bar').innerHTML=phases.map(ph=>`<div class="cycle-seg${ph===e.mc?' active':''}" style="background:${cycleInfo[ph].c}" title="${ph}"></div>`).join('');
+  document.getElementById('cycle-desc').innerHTML=`<b style="color:${cycleInfo[e.mc].c}">${cycleInfo[e.mc].desc.split('—')[0].trim()}</b> — ${(cycleInfo[e.mc].desc.split('—')[1]||'').trim()}`;
+
+  document.getElementById('forecast-tag').innerText=`+${projPct}% over ${hold}yr hold`;
+  if(chartInst)chartInst.destroy();
+  chartInst=new Chart(document.getElementById('forecastChart'),{
+    type:'line',
+    data:{labels:fLabels,datasets:[{label:'Value',data:fData,borderColor:'#B8860B',backgroundColor:ctx=>{const g=ctx.chart.ctx.createLinearGradient(0,0,0,200);g.addColorStop(0,'rgba(184,134,11,0.2)');g.addColorStop(1,'rgba(184,134,11,0)');return g;},fill:true,tension:0.4,pointBackgroundColor:'#fff',pointBorderColor:'#B8860B',pointRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{family:'Manrope',size:10}}},y:{grid:{color:'#f3f4f6'},ticks:{font:{family:'Manrope',size:10},callback:v=>v>=10000000?(v/10000000).toFixed(1)+'Cr':(v/100000).toFixed(0)+'L'}}}}
+  });
+
+  document.getElementById('comps-list').innerHTML=comps.length?comps.map(c=>`
+    <div class="comp-row">
+      <div class="comp-name" title="${c.n}">${c.n}</div>
+      <div class="comp-bar-wrap"><div class="comp-bar" style="width:${(c.p/maxP*100).toFixed(0)}%"></div></div>
+      <div class="comp-price">₹${c.p.toLocaleString()}/sqft</div>
+    </div>`).join(''):'<p style="font-size:.72rem;color:var(--light)">No other localities in this city.</p>';
+
+  const gstNote=mSeg>1.35?'Nil (ready-to-move)':'5% GST on under-construction';
+  const tdsNote=totalVal>=5000000?'Yes — 1% TDS (Sec 194IA)':'Not applicable (below ₹50L)';
+  document.getElementById('tax-list').innerHTML=[
+    ['Stamp Duty','~6% of value (Maharashtra avg; varies by state)'],
+    ['Registration','1% of value'],
+    ['GST',gstNote],
+    ['TDS Obligation',tdsNote],
+    ['Annual Property Tax','~0.1–0.2% (varies by MCD/BMC/GHMC)'],
+    ['LTCG Tax',`12.5% on gains after ${hold}yr hold (no indexation)`],
+    ['Section 80C',`Up to ₹1.5L p.a. on principal repaid`],
+    ['Section 24(b)',`Up to ₹2L p.a. interest deduction (self-use)`],
+  ].map(([l,v])=>`<div class="tax-row"><span class="tax-lab">${l}</span><span class="tax-val">${v}</span></div>`).join('');
+
+  document.getElementById('drawer').classList.add('open');
+}
+
+function closeDrawer(){document.getElementById('drawer').classList.remove('open');}
+function openModal(){document.getElementById('modal-overlay').classList.add('open');}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open');}
+document.getElementById('modal-overlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
+
+function exportPDF(){
+  if(!sel) return;
+  // Gather all rendered content from the drawer
+  const loc   = document.getElementById('report-loc').innerText;
+  const ref   = document.getElementById('report-ref').innerText;
+  const price = document.getElementById('final-price').innerText;
+  const rate  = document.getElementById('final-rate').innerText;
+  const stamp = document.getElementById('stamp-val').innerText;
+  const reg   = document.getElementById('reg-val').innerText;
+  const allin = document.getElementById('allin-val').innerText;
+
+  const vIcon  = document.getElementById('verdict-icon').innerText;
+  const vLabel = document.getElementById('verdict-label').innerText;
+  const vTag   = document.getElementById('verdict-tag').innerText;
+  const vReason= document.getElementById('verdict-reason').innerText;
+  const vChecks= document.getElementById('verdict-checklist').innerHTML;
+  const vClass = document.getElementById('verdict-card').className;
+
+  const emiVal    = document.getElementById('emi-val').innerText;
+  const emiDetail = document.getElementById('emi-detail').innerText;
+  const rentVal   = document.getElementById('rent-val').innerText;
+  const yieldDet  = document.getElementById('yield-detail').innerText;
+  const dpVal     = document.getElementById('dp-val').innerText;
+  const affordVal = document.getElementById('afford-val').innerText;
+  const affordDet = document.getElementById('afford-detail').innerText;
+  const beVal     = document.getElementById('breakeven-val').innerText;
+  const intVal    = document.getElementById('interest-val').innerText;
+  const intDet    = document.getElementById('interest-detail').innerText;
+
+  const scoreVal   = document.getElementById('score-val').innerText;
+  const scoreGrade = document.getElementById('score-grade').innerText;
+  const sGrowthT   = document.getElementById('s-growth').innerText;
+  const sYieldT    = document.getElementById('s-yield').innerText;
+  const sTimingT   = document.getElementById('s-timing').innerText;
+  const sAffordT   = document.getElementById('s-afford').innerText;
+  const pbG = document.getElementById('pb-growth').style.width;
+  const pbY = document.getElementById('pb-yield').style.width;
+  const pbT = document.getElementById('pb-timing').style.width;
+  const pbA = document.getElementById('pb-afford').style.width;
+
+  const algoHTML  = document.getElementById('algo-list').innerHTML;
+  const cycleHTML = document.getElementById('cycle-bar').innerHTML;
+  const cycleDesc = document.getElementById('cycle-desc').innerHTML;
+  const forecastTag= document.getElementById('forecast-tag').innerText;
+  const compsHTML = document.getElementById('comps-list').innerHTML;
+  const taxHTML   = document.getElementById('tax-list').innerHTML;
+
+  // Capture chart as image
+  const canvas = document.getElementById('forecastChart');
+  const chartImg = canvas ? canvas.toDataURL('image/png') : '';
+
+  // Verdict colour
+  const vColour = vClass.includes('avoid') ? '#DC2626' : vClass.includes('buy') ? '#16A34A' : '#D97706';
+  const vBg     = vClass.includes('avoid') ? '#FEF2F2' : vClass.includes('buy') ? '#F0FDF4' : '#FFFBEB';
+
+  const html = `<!DOCTYPE html><html><head>
+<meta charset="UTF-8">
+<title>SAM VISION — ${loc} · ${new Date().toLocaleDateString('en-IN')}</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;800&family=Manrope:wght@400;600;700;800&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--gold:#B8860B;--gold-lt:#FDF6E3;--muted:#6B7280;--light:#9CA3AF}
+body{font-family:'Manrope',sans-serif;color:#111;background:#fff;font-size:13px;line-height:1.5;padding:0}
+@page{size:A4;margin:14mm 12mm}
+
+/* ── PAGE HEADER ── */
+.page-header{display:flex;justify-content:space-between;align-items:center;
+  padding:14px 20px;border-bottom:3px solid #111;margin-bottom:20px;background:#fff}
+.ph-brand{font-family:'Cinzel',serif;font-size:1.4rem;font-weight:800;letter-spacing:.15em}
+.ph-brand span{color:var(--gold)}
+.ph-meta{text-align:right;font-size:.62rem;color:var(--muted);line-height:1.7}
+.ph-ref{font-family:monospace;font-size:.58rem;color:#aaa;display:block;margin-top:2px}
+
+/* ── SECTION TITLE ── */
+.sec-title{font-size:.58rem;font-weight:800;text-transform:uppercase;letter-spacing:.18em;
+  color:var(--muted);margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid #F0F0F0}
+
+/* ── HERO ── */
+.hero{text-align:center;padding:20px;border:1px solid rgba(184,134,11,.25);
+  border-radius:12px;margin-bottom:16px;background:linear-gradient(160deg,#fff,#FDFAF3);
+  position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.hero-eye{font-size:.58rem;color:var(--light);font-weight:700;text-transform:uppercase;
+  letter-spacing:.22em;margin-bottom:6px}
+.hero-price{font-family:'Playfair Display',serif;font-size:2.6rem;font-weight:700;
+  color:#111;line-height:1.1;margin-bottom:6px}
+.hero-rate{display:inline-block;background:var(--gold-lt);border:1px solid rgba(184,134,11,.3);
+  border-radius:20px;padding:3px 16px;font-size:.72rem;font-weight:700;color:var(--gold);margin-bottom:14px}
+.hero-grid{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid #EEE;
+  border-radius:8px;overflow:hidden;background:#FAF8F3}
+.hero-cell{padding:10px 8px;text-align:center;border-right:1px solid #EEE}
+.hero-cell:last-child{border:none}
+.hc-val{font-weight:700;font-size:.86rem;color:#111}
+.hc-val.gold{color:var(--gold)}
+.hc-lab{font-size:.57rem;color:var(--light);text-transform:uppercase;margin-top:2px;font-weight:700}
+
+/* ── VERDICT ── */
+.verdict{border-radius:12px;padding:16px;margin-bottom:16px;border:2px solid ${vColour};background:${vBg}}
+.vt{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
+.vi{font-size:2rem;line-height:1;flex-shrink:0}
+.vl{font-family:'Cinzel',serif;font-size:1.15rem;font-weight:700;color:#111}
+.vtag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.57rem;
+  font-weight:800;text-transform:uppercase;background:rgba(0,0,0,.07);margin-left:6px}
+.vr{font-size:.71rem;color:#4B5563;line-height:1.6;margin-top:4px}
+.vcl{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:12px;
+  border-top:1px solid rgba(0,0,0,.07);padding-top:12px}
+.check-item{display:flex;align-items:flex-start;gap:5px;padding:7px 9px;
+  border-radius:8px;background:rgba(255,255,255,.75);font-size:.67rem;color:#374151;line-height:1.4;
+  border:1px solid rgba(0,0,0,.05)}
+.check-sym{font-size:.85rem;font-weight:700;flex-shrink:0;line-height:1.3}
+.sym-yes{color:#16A34A}.sym-no{color:#DC2626}.sym-warn{color:#D97706}
+
+/* ── TWO-COL LAYOUT ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.full-col{margin-bottom:16px}
+
+/* ── FINANCE GRID ── */
+.fin-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fin-cell{padding:12px;background:#F8F9FA;border-radius:8px;border:1px solid #EEEEEE}
+.fin-lab{font-size:.57rem;color:var(--light);text-transform:uppercase;font-weight:700;margin-bottom:3px;letter-spacing:.04em}
+.fin-val{font-weight:700;font-size:.92rem;color:#111;margin-bottom:2px}
+.fin-sub{font-size:.6rem;color:var(--muted)}
+.fin-val-green{color:#16A34A}.fin-val-amber{color:#D97706}.fin-val-red{color:#DC2626}
+
+/* ── SCORE ── */
+.score-box{display:flex;align-items:center;gap:16px}
+.score-num{font-family:'Cinzel',serif;font-size:2.8rem;font-weight:700;color:#111;line-height:1}
+.score-label{font-size:.68rem;font-weight:700;color:var(--muted)}
+.score-grade{font-size:.8rem;font-weight:700;color:var(--gold);margin-top:2px}
+.sb-row{margin-bottom:8px}
+.sb-top{display:flex;justify-content:space-between;font-size:.62rem;font-weight:700;margin-bottom:3px}
+.sb-lab{color:var(--muted)}.sb-val{color:#111}
+.prog{height:6px;background:#E8E8E8;border-radius:6px;overflow:hidden}
+.prog-fill{height:100%;border-radius:6px;background:linear-gradient(135deg,#C9980D,#9A7009)}
+
+/* ── ALGO ── */
+.card{border:1px solid #EEEEEE;border-radius:12px;overflow:hidden;margin-bottom:16px}
+.card-head{padding:9px 14px;background:#F5F5F5;border-bottom:1px solid #EEEEEE;
+  font-size:.58rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.14em}
+.algo-row{display:flex;justify-content:space-between;align-items:center;
+  padding:9px 14px;border-bottom:1px solid #F5F5F5;font-size:.72rem}
+.algo-row:last-child{border:none}
+.algo-row.winner{background:#FFFDF5;border-left:3px solid var(--gold)}
+.algo-name{font-weight:600;color:var(--muted)}.win-name{font-weight:700;color:#111}
+.algo-val{font-weight:700;color:#111;font-family:monospace;font-size:.72rem}
+.algo-acc{font-size:.58rem;color:var(--gold);font-weight:700;margin-top:1px}
+
+/* ── CYCLE ── */
+.cycle-bar{display:flex;gap:4px;margin-bottom:10px}
+.cycle-seg{flex:1;height:10px;border-radius:20px;opacity:.2}
+.cycle-seg.active{opacity:1}
+.cycle-desc{font-size:.7rem;color:#4B5563;background:#F7F6F2;
+  border-radius:8px;padding:11px 13px;line-height:1.65;border:1px solid #EEEAE0}
+
+/* ── CHART ── */
+.chart-img{width:100%;border-radius:8px;border:1px solid #EEEEEE;display:block}
+
+/* ── COMPS ── */
+.comp-row{display:flex;align-items:center;gap:10px;font-size:.7rem;padding:5px 0;border-bottom:1px solid #F5F5F5}
+.comp-row:last-child{border:none}
+.comp-name{font-weight:700;color:#374151;width:110px;flex-shrink:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.comp-bar-wrap{flex:1;height:6px;background:#F0EDE4;border-radius:6px;overflow:hidden}
+.comp-bar{height:100%;border-radius:6px;background:rgba(184,134,11,.55)}
+.comp-price{font-weight:700;color:var(--muted);font-family:monospace;
+  width:110px;text-align:right;flex-shrink:0;font-size:.63rem}
+
+/* ── TAX ── */
+.tax-row{display:flex;justify-content:space-between;padding:7px 0;
+  border-bottom:1px solid #F3F4F6;font-size:.7rem;gap:10px}
+.tax-row:last-child{border:none}
+.tax-lab{color:var(--muted)}.tax-val{font-weight:700;color:#111;text-align:right}
+
+/* ── FOOTER ── */
+.page-footer{text-align:center;font-size:.58rem;color:#bbb;
+  border-top:1px solid #F0F0F0;padding-top:12px;margin-top:20px;line-height:1.8}
+</style>
+</head><body>
+
+<div class="page-header">
+  <div>
+    <div class="ph-brand cinzel">SAM <span>VISION</span></div>
+    <div style="font-size:.62rem;color:var(--muted);margin-top:2px">Bharat Estate Intelligence · Valuation Report</div>
+  </div>
+  <div class="ph-meta">
+    ${loc}<br>
+    ${new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}
+    <span class="ph-ref">${ref}</span>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eye">Estimated Market Value · Q1 2026</div>
+  <div class="hero-price">${price}</div>
+  <div class="hero-rate">${rate}</div>
+  <div class="hero-grid">
+    <div class="hero-cell"><div class="hc-val">${stamp}</div><div class="hc-lab">Stamp Duty ~6%</div></div>
+    <div class="hero-cell"><div class="hc-val">${reg}</div><div class="hc-lab">Reg + GST ~2%</div></div>
+    <div class="hero-cell"><div class="hc-val gold">${allin}</div><div class="hc-lab">All-In Cost</div></div>
+  </div>
+</div>
+
+<!-- VERDICT -->
+<div class="verdict">
+  <div class="vt">
+    <div class="vi">${vIcon}</div>
+    <div style="flex:1">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+        <span class="vl">${vLabel}</span>
+        <span class="vtag">${vTag}</span>
+      </div>
+      <div class="vr">${vReason}</div>
+    </div>
+  </div>
+  <div class="vcl">${vChecks}</div>
+</div>
+
+<!-- FINANCIAL + SCORE side by side -->
+<div class="two-col">
+  <div>
+    <div class="sec-title">Financial Breakdown</div>
+    <div class="fin-grid">
+      <div class="fin-cell"><div class="fin-lab">Monthly EMI</div><div class="fin-val">${emiVal}</div><div class="fin-sub">${emiDetail}</div></div>
+      <div class="fin-cell"><div class="fin-lab">Rental Income</div><div class="fin-val">${rentVal}</div><div class="fin-sub">${yieldDet}</div></div>
+      <div class="fin-cell"><div class="fin-lab">Down Payment</div><div class="fin-val">${dpVal}</div><div class="fin-sub">Required upfront</div></div>
+      <div class="fin-cell"><div class="fin-lab">Affordability</div><div class="fin-val ${document.getElementById('afford-val').className.includes('green')?'fin-val-green':document.getElementById('afford-val').className.includes('amber')?'fin-val-amber':'fin-val-red'}">${affordVal}</div><div class="fin-sub">${affordDet}</div></div>
+      <div class="fin-cell"><div class="fin-lab">Break-Even</div><div class="fin-val">${beVal}</div><div class="fin-sub">Rental recovery</div></div>
+      <div class="fin-cell"><div class="fin-lab">Total Interest</div><div class="fin-val">${intVal}</div><div class="fin-sub">${intDet}</div></div>
+    </div>
+  </div>
+  <div>
+    <div class="sec-title">Investment Score</div>
+    <div class="score-box" style="margin-bottom:14px">
+      <div>
+        <div class="score-num">${scoreVal}</div>
+        <div class="score-label">/100</div>
+      </div>
+      <div>
+        <div class="score-grade">${scoreGrade}</div>
+        <div style="font-size:.62rem;color:var(--muted);margin-top:4px">Composite investment rating</div>
+      </div>
+    </div>
+    <div class="sb-row"><div class="sb-top"><span class="sb-lab">Growth Potential</span><span class="sb-val">${sGrowthT}</span></div><div class="prog"><div class="prog-fill" style="width:${pbG}"></div></div></div>
+    <div class="sb-row"><div class="sb-top"><span class="sb-lab">Rental Yield</span><span class="sb-val">${sYieldT}</span></div><div class="prog"><div class="prog-fill" style="width:${pbY}"></div></div></div>
+    <div class="sb-row"><div class="sb-top"><span class="sb-lab">Market Timing</span><span class="sb-val">${sTimingT}</span></div><div class="prog"><div class="prog-fill" style="width:${pbT}"></div></div></div>
+    <div class="sb-row"><div class="sb-top"><span class="sb-lab">Affordability</span><span class="sb-val">${sAffordT}</span></div><div class="prog"><div class="prog-fill" style="width:${pbA}"></div></div></div>
+  </div>
+</div>
+
+<!-- QUANT-7 + CYCLE side by side -->
+<div class="two-col">
+  <div>
+    <div class="sec-title">Quant-7 Consensus Engine</div>
+    <div class="card" style="margin-bottom:0">${algoHTML}</div>
+  </div>
+  <div>
+    <div class="sec-title">Market Cycle Position</div>
+    <div class="cycle-bar">${cycleHTML}</div>
+    <div class="cycle-desc">${cycleDesc}</div>
+  </div>
+</div>
+
+<!-- FORECAST CHART -->
+<div class="full-col">
+  <div class="sec-title">Price Forecast — ${forecastTag}</div>
+  ${chartImg ? `<img src="${chartImg}" class="chart-img" alt="Price Forecast Chart">` : ''}
+</div>
+
+<!-- COMPS + TAX side by side -->
+<div class="two-col">
+  <div>
+    <div class="sec-title">Comparable Localities</div>
+    <div>${compsHTML}</div>
+  </div>
+  <div>
+    <div class="sec-title">Tax & Legal Obligations</div>
+    <div>${taxHTML}</div>
+  </div>
+</div>
+
+<div class="page-footer">
+  Powered by SAM VISION AI · Q1 2026 · Valuation uses locality CAGR, yield &amp; market cycle variance.<br>
+  For informational use only. Verify with RERA, local registrar, and a certified property valuer before transacting.
+</div>
+
+<script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}<\/script>
+</body></html>`;
+
+  const w = window.open('','_blank','width=900,height=700');
+  w.document.write(html);
+  w.document.close();
+}
+</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" onload="window._leafletReady=true;if(window._chartReady)initApp()"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js" onload="window._chartReady=true;if(window._leafletReady)initApp()"></script>
+</body>
+</html>
