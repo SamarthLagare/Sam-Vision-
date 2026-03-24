@@ -1,8 +1,8 @@
 # SAM VISION 🏢🤖
 **Bharat Estate Intelligence | Advanced Property Valuation Engine**
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Available-success?style=for-the-badge)](https://samarthlagare.github.io/Sam-Vision-/)
-*(Click the link above to view the live interactive dashboard)*
+[[![Live Demo](https://img.shields.io/badge/Live%20Demo-Available-success?style=for-the-badge)](https://samarthlagare.github.io/Sam-Vision-/)
+*(Click the link above to view the live interactive dashboard)*](https://samarthlagare.github.io/Sam-Vision-/)
 
 ## 📌 Overview
 **SAM VISION** is an AI-driven, highly localized property valuation and real estate intelligence dashboard built for the Indian market. It bridges the gap between raw, fragmented real estate data and retail financial literacy. 
